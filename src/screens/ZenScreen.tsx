@@ -64,13 +64,17 @@ export function ZenScreen() {
       <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <View style={styles.canvasWrap}>
-          <ZenCanvas theme={theme} resetVersion={resetVersion} />
+          <ZenCanvas
+            theme={theme}
+            resetVersion={resetVersion}
+            onPullToReset={resetSheet}
+          />
         </View>
 
         <GestureDetector gesture={bottomPan}>
           <View style={[styles.bottomZone, { height: BOTTOM_ZONE_HEIGHT }]}>
             <Text style={[styles.bottomHint, { color: theme.mutedText }]}>
-              Swipe up for stats · swipe down to reset
+              Pull down on the grid to reset · swipe up here for stats
             </Text>
           </View>
         </GestureDetector>

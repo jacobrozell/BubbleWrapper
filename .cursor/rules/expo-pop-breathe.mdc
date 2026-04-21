@@ -1,0 +1,24 @@
+---
+description: Pop & Breathe — Expo/React Native stack and conventions
+alwaysApply: true
+---
+
+# Stack
+
+- **Expo SDK ~54**, **React Native 0.81**, **New Architecture** enabled (`newArchEnabled` in `app.json`).
+- **Entry**: `index.ts` — must keep `import 'react-native-gesture-handler'` and Reanimated imports before other app imports; `registerRootComponent` from `expo`.
+- **Babel**: `babel-preset-expo` + `react-native-reanimated/plugin` (last plugin).
+
+# Storage
+
+- **MMKV** (`react-native-mmkv`) in `src/storage/zenStore.ts` with **in-memory fallback** if native MMKV is unavailable (e.g. some Expo Go cases). For persistence parity with production, use a **dev build** (`expo run:android` / EAS), not only JS-only fallback.
+
+# Commands
+
+- **Dev**: `npm start` / `npx expo start` — Metro; `npm run android` / `ios` / `web`.
+- **Tests**: `npm test` (Jest + `jest-expo`); tests live under `__tests__/*.test.ts`.
+- **Cache issues**: `npx expo start -c`.
+
+# Edits
+
+- Match existing TypeScript style, minimal diffs, no unrelated refactors.

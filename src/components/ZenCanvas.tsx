@@ -1,6 +1,6 @@
 import { FlashList } from '@shopify/flash-list';
-import React, { useCallback, useMemo } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { RefreshControl, View, useWindowDimensions } from 'react-native';
 
 import { recordPop } from '../storage/zenStore';
 import { SPACE } from '../theme/tokens';
@@ -15,9 +15,10 @@ const BUBBLE_COUNT = 480;
 type Props = {
   theme: ThemeTokens;
   resetVersion: number;
+  onPullToReset: () => void;
 };
 
-export function ZenCanvas({ theme, resetVersion }: Props) {
+export function ZenCanvas({ theme, resetVersion, onPullToReset }: Props) {
   const { width } = useWindowDimensions();
 
   const { cols, bubbleSize, data, cellWidth } = useMemo(() => {
@@ -33,9 +34,17 @@ export function ZenCanvas({ theme, resetVersion }: Props) {
     return { cols, bubbleSize, data, cellWidth };
   }, [width]);
 
+  const [refreshing, setRefreshing] = useState(false);
+
   const onPop = useCallback((_id: number) => {
     recordPop();
   }, []);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    onPullToReset();
+    requestAnimationFrame(() => setRefreshing(false));
+  }, [onPullToReset]);
 
   const renderItem = useCallback(
     ({ item }: { item: number }) => (
@@ -66,6 +75,17 @@ export function ZenCanvas({ theme, resetVersion }: Props) {
       keyExtractor={(i) => String(i)}
       renderItem={renderItem}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={theme.text}
+          colors={[theme.mode === 'dark' ? '#eef1f6' : '#1b2230']}
+          progressBackgroundColor={
+            theme.mode === 'dark' ? theme.panel : theme.bubble
+          }
+        />
+      }
       contentContainerStyle={{
         paddingHorizontal: SPACE.md,
         paddingTop: 12,

@@ -1,0 +1,32 @@
+---
+description: Android emulator/device — env, logs, and how the agent should help
+alwaysApply: true
+---
+
+# Windows + Android SDK
+
+- This repo sets **`ANDROID_HOME`** / **`PATH`** for **Cursor’s integrated terminal** via `.vscode/settings.json` (standard SDK under `%LOCALAPPDATA%\Android\Sdk`). **Open a new terminal tab** after changing settings.
+- For a **persistent Windows user** variable (all apps/terminals), run **`powershell -ExecutionPolicy Bypass -File .\scripts\set-android-env.ps1`**, then restart Cursor.
+- If `adb` is still missing, set **`ANDROID_HOME`** manually to the real SDK path and add **`%ANDROID_HOME%\platform-tools`** and **`%ANDROID_HOME%\emulator`** to **PATH**.
+- Before `expo run:android` / pressing **a** in Expo, ensure a target exists: **`adb devices`** shows `device` (USB phone or running emulator). Create/start an AVD in Android Studio if there is no emulator.
+
+# Crash triage (JS vs native)
+
+- **Metro** (the `expo start` terminal): JS errors, redbox stacks, bundler failures.
+- **Native / startup before JS**: use **`adb logcat`**. If Metro shows nothing useful, capture logcat.
+
+# Log capture for the agent
+
+- From repo root, clear then record (PowerShell):
+
+```powershell
+adb logcat -c
+adb logcat -v time *:S ReactNative:V ReactNativeJS:V AndroidRuntime:E Expo:V SoLoader:V libc:F DEBUG:F | Tee-Object -FilePath .\android-startup.log
+```
+
+- Reproduce once, stop with Ctrl+C, then **`@android-startup.log`** in chat or ask the agent to read that file. Prefer the last ~150–300 lines for huge files.
+
+# Agent behavior
+
+- **Run** diagnostics (`adb devices`, logcat, `npm test`) in the environment when investigating crashes or “works on sim” issues; do not only suggest commands without executing when the user wants hands-on help.
+- After native or config changes, remind to restart Metro with **`-c`** if bundling behaves oddly.

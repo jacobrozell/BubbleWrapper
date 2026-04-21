@@ -40,14 +40,14 @@ export function makeTheme(mode: ThemeMode): ThemeTokens {
   }
   return {
     mode,
-    canvas: '#e8ecf0',
-    bubble: '#e8ecf0',
-    bubbleBorder: 'rgba(0,0,0,0.06)',
+    canvas: '#dce4ee',
+    bubble: '#ffffff',
+    bubbleBorder: 'rgba(22,32,48,0.14)',
     text: '#1b2230',
     mutedText: 'rgba(27,34,48,0.62)',
     overlayScrim: 'rgba(20,24,30,0.25)',
-    panel: '#e8ecf0',
+    panel: '#eef2f7',
     shadow: 'rgba(20,24,30,0.22)',
-    highlight: 'rgba(255,255,255,0.75)',
+    highlight: 'rgba(42,157,143,0.55)',
   };
 }

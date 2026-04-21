@@ -9,7 +9,7 @@ async function safeRun(fn: () => Promise<void>): Promise<void> {
 }
 
 export function popPressIn(): void {
-  void safeRun(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+  void safeRun(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
 }
 
 export function popComplete(): void {

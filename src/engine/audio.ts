@@ -1,13 +1,25 @@
 import { Audio } from 'expo-av';
 
-/** Spec: playback rate centered at 1.0 with ±0.05 variance. */
+/** Slightly brightened rate so each pop feels snappy but not identical. */
 export function randomizePlaybackRate(): number {
-  return 0.95 + Math.random() * 0.1;
+  return 1.02 + Math.random() * 0.08;
 }
 
-let sound: Audio.Sound | null = null;
+let primary: Audio.Sound | null = null;
+let accent: Audio.Sound | null = null;
 let initPromise: Promise<void> | null = null;
 let initFailed = false;
+
+async function loadPopSound(): Promise<Audio.Sound | null> {
+  const mod = require('../../assets/pop.wav');
+  const { sound } = await Audio.Sound.createAsync(mod, {
+    shouldPlay: false,
+    isLooping: false,
+    volume: 1,
+  });
+  await sound.setVolumeAsync(1);
+  return sound;
+}
 
 export async function initPopAudio(): Promise<void> {
   if (initFailed) return;
@@ -21,15 +33,16 @@ export async function initPopAudio(): Promise<void> {
           shouldDuckAndroid: true,
           playThroughEarpieceAndroid: false,
         });
-        const mod = require('../../assets/pop.wav');
-        const { sound: s } = await Audio.Sound.createAsync(mod, {
-          shouldPlay: false,
-          isLooping: false,
-        });
-        sound = s;
+        const [a, b] = await Promise.all([
+          loadPopSound(),
+          loadPopSound(),
+        ]);
+        primary = a;
+        accent = b;
       } catch {
         initFailed = true;
-        sound = null;
+        primary = null;
+        accent = null;
       }
     })();
   }
@@ -38,12 +51,22 @@ export async function initPopAudio(): Promise<void> {
 
 export async function playPop(): Promise<void> {
   await initPopAudio();
-  if (!sound) return;
+  if (!primary || !accent) return;
   const rate = randomizePlaybackRate();
+  const accentRate = Math.min(rate * 1.04, 1.95);
   try {
-    await sound.setRateAsync(rate, true);
-    await sound.setPositionAsync(0);
-    await sound.playAsync();
+    await primary.setVolumeAsync(1);
+    await primary.setRateAsync(rate, true);
+    await primary.setPositionAsync(0);
+    await primary.playAsync();
+
+    await accent.setVolumeAsync(0.38);
+    await accent.setRateAsync(accentRate, true);
+    await accent.setPositionAsync(0);
+    const layer = accent;
+    setTimeout(() => {
+      void layer.playAsync();
+    }, 12);
   } catch {
     // Offline asset / platform quirks — fail silently.
   }

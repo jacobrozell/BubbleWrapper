@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Pop & Breathe",
-    "slug": "pop-breathe",
+    "slug": "bubblewrapper",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -25,6 +25,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a4f619bd-a7b1-4c65-85cc-1ab74e902211"
+      }
+    },
+    "owner": "jacobrozell"
   }
 }

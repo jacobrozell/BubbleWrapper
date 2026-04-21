@@ -1,7 +1,16 @@
-import { Platform } from 'react-native';
-import { createMMKV, type MMKV } from 'react-native-mmkv';
+import { Platform, TurboModuleRegistry } from 'react-native';
 
 import { advanceDailyStreak, utcDayString } from './statsLogic';
+
+/** Nitro loads at import-time in react-native-mmkv v4 — avoid importing MMKV unless native Nitro exists (e.g. Expo Go has no Nitro). */
+function isNitroNativeAvailable(): boolean {
+  if (Platform.OS === 'web') return false;
+  try {
+    return TurboModuleRegistry.get('NitroModules') != null;
+  } catch {
+    return false;
+  }
+}
 
 export type ThemeMode = 'light' | 'dark';
 
@@ -41,8 +50,11 @@ function createMemoryBackend(): StorageBackend {
 
 function createMmkvBackend(): StorageBackend | null {
   if (Platform.OS === 'web') return null;
+  if (!isNitroNativeAvailable()) return null;
   try {
-    const mmkv: MMKV = createMMKV({ id: 'pop-breathe' });
+    const { createMMKV } =
+      require('react-native-mmkv') as typeof import('react-native-mmkv');
+    const mmkv = createMMKV({ id: 'pop-breathe' });
     return {
       getString: (key) => mmkv.getString(key),
       set: (key, value) => {
