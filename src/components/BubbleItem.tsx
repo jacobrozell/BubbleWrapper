@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
+  Platform,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -102,6 +103,16 @@ function BubbleItemImpl({
   const fillUnpopped = bubbleFillUnpopped ?? theme.bubble;
   const fillPopped = bubbleFillPopped ?? theme.bubble;
 
+  const pressableStyle: StyleProp<ViewStyle> = useMemo(
+    () => ({
+      width: size,
+      height: size,
+      alignItems: 'center',
+      justifyContent: 'center',
+    }),
+    [size],
+  );
+
   const surface: StyleProp<ViewStyle> = {
     width: size,
     height: size,
@@ -109,10 +120,16 @@ function BubbleItemImpl({
     backgroundColor: popped ? fillPopped : fillUnpopped,
     borderWidth: popped ? 2 : 1,
     borderColor: popped ? borderPopped : borderUnpopped,
-    shadowColor: theme.shadow,
-    shadowOffset: { width: 0, height: popped ? 2 : 6 },
-    shadowOpacity: popped ? 0.14 : 0.32,
-    shadowRadius: popped ? 5 : 11,
+    ...(Platform.OS === 'ios'
+      ? {
+          shadowColor: theme.shadow,
+          shadowOffset: { width: 0, height: popped ? 2 : 6 },
+          shadowOpacity: popped ? 0.14 : 0.32,
+          shadowRadius: popped ? 5 : 11,
+        }
+      : {
+          elevation: popped ? 2 : 6,
+        }),
   };
 
   return (
@@ -122,10 +139,7 @@ function BubbleItemImpl({
       hitSlop={hitSlop}
       onPressIn={pressIn}
       onPressOut={pressOut}
-      style={[
-        animatedStyle,
-        { width: size, height: size, alignItems: 'center', justifyContent: 'center' },
-      ]}
+      style={[animatedStyle, pressableStyle]}
     >
       <Animated.View style={surface} />
     </AnimatedPressable>

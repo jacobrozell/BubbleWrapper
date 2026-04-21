@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -8,9 +8,10 @@ import {
   View,
 } from 'react-native';
 import Animated, {
-  runOnJS,
+  runOnUI,
   useAnimatedStyle,
   useSharedValue,
+  withSequence,
   withSpring,
 } from 'react-native-reanimated';
 import {
@@ -25,6 +26,10 @@ import {
   achievementMet,
   achievementProgressParts,
 } from '../economy/achievementsMvpLogic';
+import {
+  ACHIEVEMENT_CLAIM_SPRING_IN,
+  ACHIEVEMENT_CLAIM_SPRING_OUT,
+} from '../engine/physics';
 import { popComplete, selectionTick } from '../engine/haptics';
 import {
   claimMvpAchievement,
@@ -40,34 +45,23 @@ import {
 import { useZenStore } from '../storage/useZenStore';
 import { makeTheme } from '../theme/tokens';
 
-function AchievementMvpRow({
+const AchievementMvpRow = React.memo(function AchievementMvpRow({
   def,
   theme,
   claimed,
   claimable,
   metaLine,
-  claimAnimLockRef,
 }: {
   def: AchievementMvpDef;
   theme: ReturnType<typeof makeTheme>;
   claimed: boolean;
   claimable: boolean;
   metaLine: string;
-  claimAnimLockRef: React.MutableRefObject<boolean>;
 }): React.JSX.Element {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
-
-  const finishClaim = useCallback(() => {
-    const r = claimMvpAchievement(def.id);
-    if (r === 'ok') {
-      popComplete();
-    }
-    scale.value = withSpring(1, { damping: 16, stiffness: 280 });
-    claimAnimLockRef.current = false;
-  }, [claimAnimLockRef, def.id, scale]);
 
   const onPress = () => {
     if (claimed) {
@@ -78,25 +72,25 @@ function AchievementMvpRow({
       selectionTick();
       return;
     }
-    if (claimAnimLockRef.current) {
-      selectionTick();
-      return;
-    }
-    claimAnimLockRef.current = true;
     selectionTick();
-    scale.value = withSpring(
-      1.1,
-      { damping: 13, stiffness: 320 },
-      (finished) => {
-        if (finished) {
-          runOnJS(finishClaim)();
-        } else {
-          runOnJS(() => {
-            claimAnimLockRef.current = false;
-          })();
-        }
-      },
-    );
+    // Claim on the JS thread here — do not depend on Reanimated's withSpring
+    // completion + runOnJS; on some Android builds that callback never fires,
+    // leaving a shared lock stuck so every tap only plays selectionTick().
+    const r = claimMvpAchievement(def.id);
+    if (r === 'ok') {
+      popComplete();
+      // Kick off the animation on the UI thread so it doesn't get delayed by
+      // JS work (store updates, re-renders) on slower Android devices.
+      runOnUI(() => {
+        'worklet';
+        scale.value = withSequence(
+          withSpring(1.07, ACHIEVEMENT_CLAIM_SPRING_OUT),
+          withSpring(1, ACHIEVEMENT_CLAIM_SPRING_IN),
+        );
+      })();
+    } else {
+      selectionTick();
+    }
   };
 
   const metaColor = claimed || claimable ? theme.flairAccent : theme.mutedText;
@@ -124,7 +118,7 @@ function AchievementMvpRow({
       accessibilityRole="button"
       accessibilityHint={
         claimable
-          ? 'Plays a short animation then adds Flair to your balance'
+          ? 'Adds Flair to your balance with a short animation'
           : undefined
       }
       accessibilityLabel={
@@ -166,7 +160,7 @@ function AchievementMvpRow({
       </Animated.View>
     </Pressable>
   );
-}
+});
 
 function PrefRow({
   label,
@@ -196,10 +190,9 @@ function PrefRow({
 export function ProgressScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const [prestigeOpen, setPrestigeOpen] = useState(false);
-  const claimAnimLockRef = useRef(false);
 
   const { game, themeMode } = useZenStore();
-  const theme = makeTheme(themeMode);
+  const theme = useMemo(() => makeTheme(themeMode), [themeMode]);
 
   useLayoutEffect(() => {
     recordProgressTabOpened();
@@ -300,7 +293,6 @@ export function ProgressScreen(): React.JSX.Element {
                 claimed={done}
                 claimable={claimable}
                 metaLine={formatAchMeta(a)}
-                claimAnimLockRef={claimAnimLockRef}
               />
             );
           })}

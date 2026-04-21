@@ -1,6 +1,11 @@
 import { FlashList } from '@shopify/flash-list';
 import React, { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, View, useWindowDimensions } from 'react-native';
+import {
+  RefreshControl,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 
 import { commitPop, refreshSheetOnly } from '../storage/zenStore';
 import { SPACE } from '../theme/tokens';
@@ -60,15 +65,23 @@ export function ZenCanvas({
     requestAnimationFrame(() => setRefreshing(false));
   }, []);
 
+  const cellStyle = useMemo(
+    () => [styles.cell, { width: cellWidth }] as const,
+    [cellWidth],
+  );
+
+  const contentContainerStyle = useMemo(
+    () => ({
+      paddingHorizontal: SPACE.md,
+      paddingTop: 12,
+      paddingBottom: SPACE.md,
+    }),
+    [],
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: number }) => (
-      <View
-        style={{
-          width: cellWidth,
-          paddingVertical: GAP / 2,
-          alignItems: 'center',
-        }}
-      >
+      <View style={cellStyle}>
         <BubbleItem
           id={item}
           theme={theme}
@@ -90,7 +103,7 @@ export function ZenCanvas({
       bubbleFillPopped,
       bubbleFillUnpopped,
       bubbleSize,
-      cellWidth,
+      cellStyle,
       hitSlopInset,
       onPop,
       popsDisabled,
@@ -118,11 +131,14 @@ export function ZenCanvas({
           }
         />
       }
-      contentContainerStyle={{
-        paddingHorizontal: SPACE.md,
-        paddingTop: 12,
-        paddingBottom: SPACE.md,
-      }}
+      contentContainerStyle={contentContainerStyle}
     />
   );
 }
+
+const styles = StyleSheet.create({
+  cell: {
+    paddingVertical: GAP / 2,
+    alignItems: 'center',
+  },
+});
