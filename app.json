@@ -26,6 +26,9 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "experiments": {
+      "baseUrl": "/BubbleWrapper"
+    },
     "extra": {
       "eas": {
         "projectId": "a4f619bd-a7b1-4c65-85cc-1ab74e902211"
