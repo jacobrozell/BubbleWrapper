@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Pressable,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -19,9 +23,21 @@ type Props = {
   size: number;
   resetVersion: number;
   onPop: (id: number) => void;
+  /** P4: when contract is complete, block pops until Next Company. */
+  popsDisabled?: boolean;
+  /** Extra hit slop from Shop touch-target upgrades (points per side). */
+  hitSlopInset?: number;
 };
 
-function BubbleItemImpl({ id, theme, size, resetVersion, onPop }: Props) {
+function BubbleItemImpl({
+  id,
+  theme,
+  size,
+  resetVersion,
+  onPop,
+  popsDisabled = false,
+  hitSlopInset = 0,
+}: Props) {
   const [popped, setPopped] = useState(false);
   const beganRef = useRef(false);
   const scale = useSharedValue(1);
@@ -37,12 +53,12 @@ function BubbleItemImpl({ id, theme, size, resetVersion, onPop }: Props) {
   }));
 
   const pressIn = useCallback(() => {
-    if (popped) return;
+    if (popped || popsDisabled) return;
     beganRef.current = true;
     popPressIn();
     void playPop();
     scale.value = withSpring(PRESS_IN_SCALE, SPRING_CONFIG);
-  }, [popped, scale]);
+  }, [popped, popsDisabled, scale]);
 
   const pressOut = useCallback(() => {
     if (!beganRef.current) {
@@ -50,7 +66,7 @@ function BubbleItemImpl({ id, theme, size, resetVersion, onPop }: Props) {
       return;
     }
     beganRef.current = false;
-    if (popped) {
+    if (popped || popsDisabled) {
       scale.value = withSpring(1, SPRING_CONFIG);
       return;
     }
@@ -58,7 +74,17 @@ function BubbleItemImpl({ id, theme, size, resetVersion, onPop }: Props) {
     popComplete();
     scale.value = withSpring(1, SPRING_CONFIG);
     onPop(id);
-  }, [id, onPop, popped, scale]);
+  }, [id, onPop, popped, popsDisabled, scale]);
+
+  const hitSlop =
+    hitSlopInset > 0
+      ? {
+          top: hitSlopInset,
+          bottom: hitSlopInset,
+          left: hitSlopInset,
+          right: hitSlopInset,
+        }
+      : undefined;
 
   const surface: StyleProp<ViewStyle> = {
     width: size,
@@ -77,6 +103,7 @@ function BubbleItemImpl({ id, theme, size, resetVersion, onPop }: Props) {
     <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel="Bubble"
+      hitSlop={hitSlop}
       onPressIn={pressIn}
       onPressOut={pressOut}
       style={[

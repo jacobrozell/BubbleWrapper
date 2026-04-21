@@ -1,5 +1,15 @@
 import { Platform, TurboModuleRegistry } from 'react-native';
 
+import { companyAt } from '../content/companies';
+import { findUpgrade } from '../content/upgrades';
+import {
+  contractCompletionCreditsBonus,
+  earnCreditsPerPop,
+  prestigeMultiplierDeltaNext,
+  prestigeMultiplierFromCount,
+  quotaForCompany,
+} from '../economy/formulas';
+
 import { advanceDailyStreak, utcDayString } from './statsLogic';
 
 /** Nitro loads at import-time in react-native-mmkv v4 — avoid importing MMKV unless native Nitro exists (e.g. Expo Go has no Nitro). */
@@ -21,7 +31,20 @@ const KEYS = {
   currentStreak: 'currentStreak',
   lastStreakDate: 'lastStreakDate',
   theme: 'theme',
+  credits: 'credits',
+  companyIndex: 'companyIndex',
+  popsThisContract: 'popsThisContract',
+  contractComplete: 'contractComplete',
+  prestigeCount: 'prestigeCount',
+  companiesCompleted: 'companiesCompleted',
+  sheetResetVersion: 'sheetResetVersion',
+  ownedUpgradesJson: 'ownedUpgradesJson',
+  hasSeenPrestigeExplainer: 'hasSeenPrestigeExplainer',
+  hapticsEnabled: 'hapticsEnabled',
+  soundEnabled: 'soundEnabled',
 } as const;
+
+const ALL_KEYS: string[] = [...Object.values(KEYS)];
 
 type StorageBackend = {
   getString(key: string): string | undefined;
@@ -88,7 +111,7 @@ export function subscribeZenStore(listener: () => void): () => void {
 /** Clears persisted keys for automated tests. */
 export function resetZenStoreForTests(): void {
   if (backend.clearAll) backend.clearAll();
-  else (Object.values(KEYS) as string[]).forEach((key) => backend.delete(key));
+  else ALL_KEYS.forEach((key) => backend.delete(key));
   emit();
 }
 
@@ -111,13 +134,36 @@ function writeString(key: string, value: string): void {
   backend.set(key, value);
 }
 
-export function getStatsSnapshot(): {
+function readOwnedUpgrades(): Record<string, number> {
+  const raw = readString(KEYS.ownedUpgradesJson);
+  if (!raw) return {};
+  try {
+    const o = JSON.parse(raw) as unknown;
+    if (typeof o !== 'object' || o == null || Array.isArray(o)) return {};
+    return o as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+
+function writeOwnedUpgrades(map: Record<string, number>): void {
+  writeString(KEYS.ownedUpgradesJson, JSON.stringify(map));
+}
+
+function bumpSheetReset(): void {
+  const v = readNumber(KEYS.sheetResetVersion, 0) + 1;
+  writeNumber(KEYS.sheetResetVersion, v);
+}
+
+export type StatsSnapshot = {
   lifetimePops: number;
   sessionStart: number | null;
   bestStreak: number;
   currentStreak: number;
   lastStreakDate: string | null;
-} {
+};
+
+export function getStatsSnapshot(): StatsSnapshot {
   const sessionRaw = backend.getString(KEYS.sessionStart);
   const sessionStart =
     sessionRaw == null || sessionRaw === ''
@@ -135,6 +181,62 @@ export function getStatsSnapshot(): {
   };
 }
 
+export type GameSnapshot = StatsSnapshot & {
+  credits: number;
+  companyIndex: number;
+  companyName: string;
+  flavorLine: string;
+  quotaPops: number;
+  popsThisContract: number;
+  contractComplete: boolean;
+  prestigeCount: number;
+  prestigeMultiplier: number;
+  prestigeNextDelta: number;
+  companiesCompleted: number;
+  sheetResetVersion: number;
+  ownedUpgrades: Record<string, number>;
+  hasSeenPrestigeExplainer: boolean;
+  hapticsEnabled: boolean;
+  soundEnabled: boolean;
+  touchTargetTier: number;
+  creditsPerPopTier: number;
+  traySkinId: string | null;
+  popSoundMutedOwned: boolean;
+};
+
+export function getGameSnapshot(): GameSnapshot {
+  const stats = getStatsSnapshot();
+  const companyIndex = readNumber(KEYS.companyIndex, 0);
+  const co = companyAt(companyIndex);
+  const owned = readOwnedUpgrades();
+  const prestigeCount = readNumber(KEYS.prestigeCount, 0);
+  const trayOwned = (owned['tray_corporate_dark'] ?? 0) > 0;
+
+  return {
+    ...stats,
+    credits: readNumber(KEYS.credits, 0),
+    companyIndex,
+    companyName: co.name,
+    flavorLine: co.flavorLine,
+    quotaPops: quotaForCompany(companyIndex),
+    popsThisContract: readNumber(KEYS.popsThisContract, 0),
+    contractComplete: readNumber(KEYS.contractComplete, 0) === 1,
+    prestigeCount,
+    prestigeMultiplier: prestigeMultiplierFromCount(prestigeCount),
+    prestigeNextDelta: prestigeMultiplierDeltaNext(prestigeCount),
+    companiesCompleted: readNumber(KEYS.companiesCompleted, 0),
+    sheetResetVersion: readNumber(KEYS.sheetResetVersion, 0),
+    ownedUpgrades: { ...owned },
+    hasSeenPrestigeExplainer: readNumber(KEYS.hasSeenPrestigeExplainer, 0) === 1,
+    hapticsEnabled: readNumber(KEYS.hapticsEnabled, 1) === 1,
+    soundEnabled: readNumber(KEYS.soundEnabled, 1) === 1,
+    touchTargetTier: owned['touch_target'] ?? 0,
+    creditsPerPopTier: owned['credits_per_pop'] ?? 0,
+    traySkinId: trayOwned ? 'tray_corporate_dark' : null,
+    popSoundMutedOwned: (owned['pop_sound_muted'] ?? 0) > 0,
+  };
+}
+
 export function getTheme(): ThemeMode {
   const t = readString(KEYS.theme);
   return t === 'dark' ? 'dark' : 'light';
@@ -145,7 +247,38 @@ export function setTheme(theme: ThemeMode): void {
   emit();
 }
 
-export function recordPop(now = Date.now()): void {
+export function setHapticsEnabled(enabled: boolean): void {
+  writeNumber(KEYS.hapticsEnabled, enabled ? 1 : 0);
+  emit();
+}
+
+export function getHapticsEnabled(): boolean {
+  return readNumber(KEYS.hapticsEnabled, 1) === 1;
+}
+
+export function setSoundEnabled(enabled: boolean): void {
+  writeNumber(KEYS.soundEnabled, enabled ? 1 : 0);
+  emit();
+}
+
+export function getSoundEnabled(): boolean {
+  return readNumber(KEYS.soundEnabled, 1) === 1;
+}
+
+export function setHasSeenPrestigeExplainer(seen: boolean): void {
+  writeNumber(KEYS.hasSeenPrestigeExplainer, seen ? 1 : 0);
+  emit();
+}
+
+/**
+ * One transactional pop commit: lifetime, streak, credits, contract progress.
+ * No-op when contract already complete (blocked pops — see Pop tab P4).
+ */
+export function commitPop(now = Date.now()): void {
+  if (readNumber(KEYS.contractComplete, 0) === 1) {
+    return;
+  }
+
   const pops = readNumber(KEYS.lifetimePops, 0) + 1;
   writeNumber(KEYS.lifetimePops, pops);
 
@@ -165,5 +298,97 @@ export function recordPop(now = Date.now()): void {
     writeNumber(KEYS.bestStreak, next.currentStreak);
   }
 
+  const owned = readOwnedUpgrades();
+  const prestigeCount = readNumber(KEYS.prestigeCount, 0);
+  const creditsTier = owned['credits_per_pop'] ?? 0;
+  const earned = earnCreditsPerPop({
+    prestigeCount,
+    creditsPerPopTier: creditsTier,
+  });
+  const credits = readNumber(KEYS.credits, 0) + earned;
+  writeNumber(KEYS.credits, credits);
+
+  const companyIndex = readNumber(KEYS.companyIndex, 0);
+  const quota = quotaForCompany(companyIndex);
+  const ptc = readNumber(KEYS.popsThisContract, 0) + 1;
+  writeNumber(KEYS.popsThisContract, ptc);
+
+  if (ptc >= quota) {
+    writeNumber(KEYS.contractComplete, 1);
+  }
+
+  emit();
+}
+
+/** @deprecated Use commitPop — alias for tests and legacy call sites. */
+export function recordPop(now = Date.now()): void {
+  commitPop(now);
+}
+
+/** Pull-to-refresh: new sheet only; contract state unchanged. */
+export function refreshSheetOnly(): void {
+  bumpSheetReset();
+  emit();
+}
+
+/** After contract complete modal — Next Company. */
+export function advanceCompany(): void {
+  if (readNumber(KEYS.contractComplete, 0) !== 1) {
+    return;
+  }
+  const bonus = contractCompletionCreditsBonus();
+  if (bonus > 0) {
+    writeNumber(KEYS.credits, readNumber(KEYS.credits, 0) + bonus);
+  }
+
+  const idx = readNumber(KEYS.companyIndex, 0) + 1;
+  writeNumber(KEYS.companyIndex, idx);
+  writeNumber(KEYS.popsThisContract, 0);
+  writeNumber(KEYS.contractComplete, 0);
+  const cc = readNumber(KEYS.companiesCompleted, 0) + 1;
+  writeNumber(KEYS.companiesCompleted, cc);
+  bumpSheetReset();
+  emit();
+}
+
+export type PurchaseResult = 'ok' | 'maxed' | 'unaffordable' | 'unknown';
+
+export function purchaseUpgrade(upgradeId: string): PurchaseResult {
+  const def = findUpgrade(upgradeId);
+  if (!def) return 'unknown';
+
+  const ownedMap = readOwnedUpgrades();
+  const owned = ownedMap[upgradeId] ?? 0;
+  if (owned >= def.tiers.length) {
+    return 'maxed';
+  }
+
+  const price = def.tiers[owned]!.priceCredits;
+  const credits = readNumber(KEYS.credits, 0);
+  if (credits < price) {
+    return 'unaffordable';
+  }
+
+  writeNumber(KEYS.credits, credits - price);
+  ownedMap[upgradeId] = owned + 1;
+  writeOwnedUpgrades(ownedMap);
+  emit();
+  return 'ok';
+}
+
+/**
+ * Prestige: hard reset of career progression (credits, contract, upgrades).
+ * Keeps lifetimePops and daily streak stats; increments prestigeCount.
+ */
+export function confirmPrestige(): void {
+  const pc = readNumber(KEYS.prestigeCount, 0) + 1;
+  writeNumber(KEYS.prestigeCount, pc);
+  writeNumber(KEYS.credits, 0);
+  writeNumber(KEYS.companyIndex, 0);
+  writeNumber(KEYS.popsThisContract, 0);
+  writeNumber(KEYS.contractComplete, 0);
+  writeOwnedUpgrades({});
+  writeNumber(KEYS.companiesCompleted, 0);
+  bumpSheetReset();
   emit();
 }

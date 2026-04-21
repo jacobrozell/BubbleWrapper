@@ -1,5 +1,11 @@
 import { Audio } from 'expo-av';
 
+import { getGameSnapshot, getSoundEnabled } from '../storage/zenStore';
+
+function getPopAccentVolume(): number {
+  return getGameSnapshot().popSoundMutedOwned ? 0.12 : 0.38;
+}
+
 /** Slightly brightened rate so each pop feels snappy but not identical. */
 export function randomizePlaybackRate(): number {
   return 1.02 + Math.random() * 0.08;
@@ -50,6 +56,7 @@ export async function initPopAudio(): Promise<void> {
 }
 
 export async function playPop(): Promise<void> {
+  if (!getSoundEnabled()) return;
   await initPopAudio();
   if (!primary || !accent) return;
   const rate = randomizePlaybackRate();
@@ -60,7 +67,8 @@ export async function playPop(): Promise<void> {
     await primary.setPositionAsync(0);
     await primary.playAsync();
 
-    await accent.setVolumeAsync(0.38);
+    const accentVol = getPopAccentVolume();
+    await accent.setVolumeAsync(accentVol);
     await accent.setRateAsync(accentRate, true);
     await accent.setPositionAsync(0);
     const layer = accent;

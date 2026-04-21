@@ -2,7 +2,7 @@ import { FlashList } from '@shopify/flash-list';
 import React, { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, View, useWindowDimensions } from 'react-native';
 
-import { recordPop } from '../storage/zenStore';
+import { commitPop, refreshSheetOnly } from '../storage/zenStore';
 import { SPACE } from '../theme/tokens';
 import type { ThemeTokens } from '../theme/tokens';
 
@@ -15,10 +15,16 @@ const BUBBLE_COUNT = 480;
 type Props = {
   theme: ThemeTokens;
   resetVersion: number;
-  onPullToReset: () => void;
+  hitSlopInset?: number;
+  popsDisabled?: boolean;
 };
 
-export function ZenCanvas({ theme, resetVersion, onPullToReset }: Props) {
+export function ZenCanvas({
+  theme,
+  resetVersion,
+  hitSlopInset = 0,
+  popsDisabled = false,
+}: Props) {
   const { width } = useWindowDimensions();
 
   const { cols, bubbleSize, data, cellWidth } = useMemo(() => {
@@ -36,15 +42,15 @@ export function ZenCanvas({ theme, resetVersion, onPullToReset }: Props) {
 
   const [refreshing, setRefreshing] = useState(false);
 
-  const onPop = useCallback((_id: number) => {
-    recordPop();
+  const onPop = useCallback(() => {
+    commitPop();
   }, []);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    onPullToReset();
+    refreshSheetOnly();
     requestAnimationFrame(() => setRefreshing(false));
-  }, [onPullToReset]);
+  }, []);
 
   const renderItem = useCallback(
     ({ item }: { item: number }) => (
@@ -61,10 +67,12 @@ export function ZenCanvas({ theme, resetVersion, onPullToReset }: Props) {
           size={bubbleSize}
           resetVersion={resetVersion}
           onPop={onPop}
+          popsDisabled={popsDisabled}
+          hitSlopInset={hitSlopInset}
         />
       </View>
     ),
-    [bubbleSize, cellWidth, onPop, resetVersion, theme],
+    [bubbleSize, cellWidth, hitSlopInset, onPop, popsDisabled, resetVersion, theme],
   );
 
   return (

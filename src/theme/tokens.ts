@@ -21,6 +21,18 @@ export type ThemeTokens = {
   panel: string;
   shadow: string;
   highlight: string;
+  /** Raised tray fill */
+  playfieldFrame: string;
+  playfieldFrameBorder: string;
+  playfieldInset: string;
+  ambientGradientStart: string;
+  ambientGradientEnd: string;
+  currencyAccent: string;
+  contractBarFill: string;
+  contractBarTrack: string;
+  shopAffordable: string;
+  shopUnaffordable: string;
+  shopOwned: string;
 };
 
 export function makeTheme(mode: ThemeMode): ThemeTokens {
@@ -36,6 +48,17 @@ export function makeTheme(mode: ThemeMode): ThemeTokens {
       panel: '#262b33',
       shadow: 'rgba(0,0,0,0.55)',
       highlight: 'rgba(255,255,255,0.10)',
+      playfieldFrame: '#22262c',
+      playfieldFrameBorder: 'rgba(255,255,255,0.08)',
+      playfieldInset: 'rgba(0,0,0,0.35)',
+      ambientGradientStart: '#1a1e26',
+      ambientGradientEnd: '#232a35',
+      currencyAccent: '#8fd4f0',
+      contractBarFill: 'rgba(143,212,240,0.85)',
+      contractBarTrack: 'rgba(255,255,255,0.12)',
+      shopAffordable: '#8fd4f0',
+      shopUnaffordable: '#6a7384',
+      shopOwned: '#9aa7b8',
     };
   }
   return {
@@ -49,5 +72,16 @@ export function makeTheme(mode: ThemeMode): ThemeTokens {
     panel: '#eef2f7',
     shadow: 'rgba(20,24,30,0.22)',
     highlight: 'rgba(42,157,143,0.55)',
+    playfieldFrame: '#e2e9f2',
+    playfieldFrameBorder: 'rgba(22,32,48,0.12)',
+    playfieldInset: 'rgba(20,24,30,0.06)',
+    ambientGradientStart: '#d4dce8',
+    ambientGradientEnd: '#e8eef6',
+    currencyAccent: '#1f6f78',
+    contractBarFill: 'rgba(31,111,120,0.9)',
+    contractBarTrack: 'rgba(27,34,48,0.12)',
+    shopAffordable: '#1f6f78',
+    shopUnaffordable: 'rgba(27,34,48,0.38)',
+    shopOwned: 'rgba(27,34,48,0.45)',
   };
 }
