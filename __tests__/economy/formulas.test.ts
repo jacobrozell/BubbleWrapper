@@ -41,13 +41,13 @@ describe('prestigeMultiplierDeltaNext', () => {
 });
 
 describe('earnCreditsPerPop', () => {
-  test('respects prestige and comfort tiers', () => {
-    expect(earnCreditsPerPop({ prestigeCount: 0, creditsPerPopTier: 0 })).toBe(
-      1,
-    );
-    expect(earnCreditsPerPop({ prestigeCount: 10, creditsPerPopTier: 2 })).toBe(
-      Math.floor(2.2 * 1.1),
-    );
+  test('base case is 1 credit at zero prestige and no comfort tiers', () => {
+    expect(earnCreditsPerPop({ prestigeCount: 0, creditsPerPopTier: 0 })).toBe(1);
+  });
+
+  test('floors prestige multiplier × comfort bonus (e.g. 2.2 × 1.1 → 2)', () => {
+    // prestigeMultiplierFromCount(10)=2.2, tier 2 → comfort 1.1 → floor(2.42)=2
+    expect(earnCreditsPerPop({ prestigeCount: 10, creditsPerPopTier: 2 })).toBe(2);
   });
 });
 

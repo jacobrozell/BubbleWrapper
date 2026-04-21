@@ -40,6 +40,9 @@ yarn-error.*
 # JetBrains
 .idea/
 
+# Jest coverage reports (regenerate with npm run test:coverage)
+coverage/
+
 # typescript
 *.tsbuildinfo
 

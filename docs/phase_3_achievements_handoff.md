@@ -19,7 +19,7 @@
 
 | Piece | Location |
 |-------|-----------|
-| Flair + lifetime contracts + claims | `src/storage/zenStore.ts` |
+| Flair + lifetime contracts + claims | `src/storage/zenStore/` (persistence + mutations); `src/storage/useZenStore.ts` (UI subscription) |
 | MVP achievement defs | `src/content/achievementsMvp.ts` |
 | Pure “what’s claimable” helper | `src/economy/achievementsMvpLogic.ts` |
 | Cosmetic defs (blue outline) | `src/content/cosmetics.ts` |

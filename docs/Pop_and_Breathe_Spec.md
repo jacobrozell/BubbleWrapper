@@ -70,7 +70,7 @@ All haptics must **fail silently** on unsupported platforms.
 - `engine/physics.ts` — spring + scale constants.
 - `engine/haptics.ts` — mapping + safe fallbacks + `zenStore` haptics toggle.
 - `engine/audio.ts` — preload + `playPop()` + pitch helper + `zenStore` sound / upgrade hooks.
-- `storage/zenStore.ts` — MMKV persistence (`createMMKV`) + pub/sub for UI refresh (memory fallback on web); **contract, Credits, Flair, cosmetics, MVP achievements, prestige, Shop**.
+- `storage/zenStore/` — MMKV persistence (`createMMKV` in `zenStore/backend.ts`) + pub/sub for UI refresh (memory fallback on web); **`storage/useZenStore.ts`** subscribes screens; **contract, Credits, Flair, cosmetics, MVP achievements, prestige, Shop**.
 - `storage/statsLogic.ts` — pure streak/day math (unit-tested).
 - `economy/formulas.ts` — pure quota / prestige / earn-rate helpers (unit-tested).
 - `content/companies.ts`, `content/upgrades.ts`, `content/cosmetics.ts`, `content/achievementsMvp.ts` — static tables for contracts, Credit upgrades, Flair cosmetics, and MVP achievements.

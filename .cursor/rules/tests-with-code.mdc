@@ -1,0 +1,38 @@
+---
+description: Add or update Jest tests whenever production code changes; keep coverage doc in sync.
+alwaysApply: true
+---
+
+# Tests with every change
+
+When you edit **game logic, storage, content, economy, engine, or navigation** under `src/`, ship **tests that justify their cost** in the same change unless the user explicitly opts out.
+
+## Purpose (non-negotiable)
+
+Every test should **guard a real regression or spec rule**: a behavior you would fix if it broke. Do **not** add tests only to raise coverage, duplicate the same assertion through aliases, or mirror implementation detail with no product meaning.
+
+Prefer **one strong test** (clear given/when/then, stable assertions) over several shallow ones. If logic is trivially composed from already-tested pure functions, test at the boundary that matters (often `zenStore` or the public API).
+
+## Where tests live
+
+- Colocate under `__tests__/` mirroring domains: `__tests__/economy/`, `__tests__/content/`, `__tests__/zenStore*.test.ts`, etc.
+- File names: `*.test.ts` or `*.test.tsx` (Jest picks up both).
+- For `zenStore`, always `resetZenStoreForTests()` in `beforeEach` (see existing `__tests__/zenStore*.test.ts`).
+
+## What to test
+
+1. **New pure functions / branches** — direct unit tests (assert inputs → outputs).
+2. **Store mutations** — call exported actions, read `getGameSnapshot` / `getStatsSnapshot` / getters; mock `jest.spyOn` on `formulas` or small modules when isolating contract quotas.
+3. **UI** — prefer testing extracted logic first. If you add `@testing-library/react-native`, add focused render/interaction tests for critical flows (e.g. pop increments visible count).
+
+## Finish checklist
+
+- Run `npm test` and fix failures. For meaningful slices, run `npm run test:coverage` and spot-check `src/` paths in `coverage/index.html`.
+- Update `docs/Test_Coverage.md`: adjust the matrix row for the area you touched and append a one-line **Changelog** entry with today’s date.
+
+## Anti-patterns
+
+- Changing `zenStore` or formulas without tests when behavior or invariants change.
+- Assertions like “not null” or “less than before” when a **numeric or structural** expectation is known from content or formulas.
+- Thousands of loops to probe `Math.random` instead of spying `Math.random` at edges.
+- “I’ll add tests later” without user opt-out.

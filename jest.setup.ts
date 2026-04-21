@@ -7,8 +7,13 @@ jest.mock('expo-av', () => ({
       createAsync: jest.fn(async () => ({
         sound: {
           setRateAsync: jest.fn(async () => undefined),
+          setVolumeAsync: jest.fn(async () => undefined),
           setPositionAsync: jest.fn(async () => undefined),
           playAsync: jest.fn(async () => undefined),
+          getStatusAsync: jest.fn(async () => ({
+            isLoaded: true,
+            isPlaying: false,
+          })),
         },
       })),
     },

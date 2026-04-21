@@ -3,6 +3,7 @@ import { UPGRADE_IDS } from '../src/content/upgrades';
 import * as formulas from '../src/economy/formulas';
 import {
   advanceCompany,
+  advanceCompanyWithSelection,
   commitPop,
   confirmPrestige,
   getGameSnapshot,
@@ -10,6 +11,7 @@ import {
   purchaseUpgrade,
   refreshSheetOnly,
   resetZenStoreForTests,
+  synchronizePendingContractOffers,
 } from '../src/storage/zenStore';
 
 describe('zenStore Phase B', () => {
@@ -40,6 +42,18 @@ describe('zenStore Phase B', () => {
     expect(g.companyIndex).toBe(1);
     expect(g.popsThisContract).toBe(0);
     expect(g.companiesCompleted).toBe(1);
+  });
+
+  test('advanceCompanyWithSelection sets companyIndex from chosen offer', () => {
+    jest.spyOn(formulas, 'quotaForCompany').mockReturnValue(1);
+    commitPop(1_000);
+    synchronizePendingContractOffers();
+    const offers = getGameSnapshot().pendingContractOffers;
+    expect(offers).toHaveLength(3);
+    const hardest = offers.reduce((a, b) => (a.companyIndex > b.companyIndex ? a : b));
+    const hardestIdx = offers.findIndex((o) => o.companyIndex === hardest.companyIndex);
+    advanceCompanyWithSelection(hardestIdx);
+    expect(getGameSnapshot().companyIndex).toBe(hardest.companyIndex);
   });
 
   test('refreshSheetOnly bumps sheet reset without changing contract', () => {
@@ -90,7 +104,8 @@ describe('zenStore Phase B', () => {
     jest.spyOn(formulas, 'earnCreditsPerPop').mockReturnValue(10_000);
     commitPop(1_000);
     expect(purchaseUpgrade(UPGRADE_IDS.creditsPerPop)).toBe('ok');
-    expect(getGameSnapshot().credits).toBeLessThan(10_000);
+    // First credits_per_pop tier costs 500 (see upgrades content).
+    expect(getGameSnapshot().credits).toBe(9_500);
     confirmPrestige();
     const g = getGameSnapshot();
     expect(g.prestigeCount).toBe(1);
