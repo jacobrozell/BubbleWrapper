@@ -11,12 +11,14 @@ alwaysApply: true
 
 # Storage
 
-- **MMKV** (`react-native-mmkv`) in `src/storage/zenStore.ts` with **in-memory fallback** if native MMKV is unavailable (e.g. some Expo Go cases). For persistence parity with production, use a **dev build** (`expo run:android` / EAS), not only JS-only fallback.
+- **MMKV** (`react-native-mmkv`) under **`src/storage/zenStore/`** with **in-memory fallback** if native MMKV is unavailable (e.g. some Expo Go cases). For persistence parity with production, use a **dev build** (`expo run:android` / EAS), not only JS-only fallback.
+- **React**: subscribe with **`useZenStore()`** from `src/storage/useZenStore.ts` (not per-screen `subscribeZenStore` + `useState` bumps). Layer rules: **`architecture-layers`** (always on).
 
 # Commands
 
 - **Dev**: `npm start` / `npx expo start` — Metro; `npm run android` / `ios` / `web`.
 - **Tests**: `npm test` (Jest + `jest-expo`); tests live under `__tests__/*.test.ts`.
+- **Lint**: `npm run lint` (`expo lint` / ESLint). Fix new issues in files you touch.
 - **Cache issues**: `npx expo start -c`.
 
 # Edits

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -14,26 +14,22 @@ import { UPGRADES, type UpgradeDef } from '../content/upgrades';
 import { nextTierPrice } from '../economy/formulas';
 import { selectionTick } from '../engine/haptics';
 import {
-  getGameSnapshot,
-  getTheme,
   purchaseCosmetic,
   purchaseUpgrade,
-  subscribeZenStore,
   type CosmeticPurchaseResult,
+  type GameSnapshot,
   type PurchaseResult,
 } from '../storage/zenStore';
+import { useZenStore } from '../storage/useZenStore';
 import { makeTheme } from '../theme/tokens';
 
 const ROW_H = 72;
 
 export function ShopScreen(): React.JSX.Element {
-  const [, bump] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
 
-  useEffect(() => subscribeZenStore(() => bump((x) => x + 1)), []);
-
-  const game = getGameSnapshot();
-  const theme = useMemo(() => makeTheme(getTheme()), [bump]);
+  const { game, themeMode } = useZenStore();
+  const theme = makeTheme(themeMode);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -142,7 +138,7 @@ function ShopRow({
   onBuy,
 }: {
   def: UpgradeDef;
-  game: ReturnType<typeof getGameSnapshot>;
+  game: GameSnapshot;
   theme: ReturnType<typeof makeTheme>;
   onBuy: (id: string) => void;
 }): React.JSX.Element {
@@ -216,7 +212,7 @@ function CosmeticRow({
   onBuy,
 }: {
   def: CosmeticDef;
-  game: ReturnType<typeof getGameSnapshot>;
+  game: GameSnapshot;
   theme: ReturnType<typeof makeTheme>;
   onBuy: (id: string) => void;
 }): React.JSX.Element {

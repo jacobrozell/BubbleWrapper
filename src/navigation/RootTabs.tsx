@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 
 import { PopScreen } from '../screens/PopScreen';
 import { ProgressScreen } from '../screens/ProgressScreen';
 import { ShopScreen } from '../screens/ShopScreen';
-import { getTheme, subscribeZenStore } from '../storage/zenStore';
+import { useZenStore } from '../storage/useZenStore';
 import { makeTheme } from '../theme/tokens';
 
 import type { RootTabParamList } from './types';
@@ -13,10 +13,8 @@ import type { RootTabParamList } from './types';
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export function RootTabs(): React.JSX.Element {
-  const [, bump] = useState(0);
-  useEffect(() => subscribeZenStore(() => bump((x) => x + 1)), []);
-
-  const tabTheme = useMemo(() => makeTheme(getTheme()), [bump]);
+  const { themeMode } = useZenStore();
+  const tabTheme = makeTheme(themeMode);
 
   return (
     <Tab.Navigator

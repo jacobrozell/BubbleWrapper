@@ -1,0 +1,28 @@
+---
+description: Layer boundaries, zenStore + React subscription, navigation shell, ESLint
+alwaysApply: true
+---
+
+# Dependency direction
+
+- **`src/content/`**, **`src/economy/`**, **`src/engine/`** — domain and side-effect helpers. Do not import from **`screens/`**, **`navigation/`**, or presentation **`components/`**.
+- **`src/storage/zenStore/`** (barrel **`src/storage/zenStore`**) — MMKV-backed persistence, mutations, `getGameSnapshot` / `getTheme`. **No React** (no hooks, no `*.tsx` imports).
+- **`src/storage/useZenStore.ts`** — **`useZenStore()`** is the standard way for UI to **subscribe** to store updates (`useSyncExternalStore`). Prefer it over ad-hoc `useEffect` + `subscribeZenStore` in screens.
+- **`src/screens/`**, **`src/components/`** — UI only; read reactive state via **`useZenStore()`**; call zenStore actions from handlers.
+- **`src/navigation/`** — tab/stack definitions and param types only; no game rules or copy.
+
+# Growth
+
+- Reusable primitives that are not one feature → keep **`src/components/`** (later **`src/shared/ui/`** if the tree grows).
+- A cohesive bundle (one flow: screen + modals + hooks) → **`src/features/<name>/`** when it stops being a single thin screen file.
+- New persisted fields / migrations → **`zenStore/`** + **tests** in `__tests__/` (or colocated `*.test.ts`).
+
+# Anti-patterns
+
+- Per-screen **`useEffect(() => subscribeZenStore(...))`** — use **`useZenStore()`** instead.
+- **`content/`** or **`economy/`** importing **`zenStore`** for runtime behavior — keep rules in domain; wire reads/writes in storage or pass values in.
+
+# ESLint
+
+- After changing **`.ts` / `.tsx`**, run **`npm run lint`** and fix **new** issues in touched files (warnings included). Do not add blanket `eslint-disable` unless there is a short comment explaining why (e.g. dynamic `require` for optional native modules, Jest `require` mocks).
+- Default config: **`eslint.config.js`** + **`eslint-config-expo`** (TypeScript, React, React Hooks). Prefer correcting code over weakening rules.

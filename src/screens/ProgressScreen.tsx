@@ -1,12 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { ACHIEVEMENT_MVP } from '../content/achievementsMvp';
@@ -19,18 +23,16 @@ import {
   setHapticsEnabled,
   setSoundEnabled,
   setTheme,
-  subscribeZenStore,
 } from '../storage/zenStore';
+import { useZenStore } from '../storage/useZenStore';
 import { makeTheme } from '../theme/tokens';
 
 export function ProgressScreen(): React.JSX.Element {
-  const [, bump] = useState(0);
+  const insets = useSafeAreaInsets();
   const [prestigeOpen, setPrestigeOpen] = useState(false);
 
-  useEffect(() => subscribeZenStore(() => bump((x) => x + 1)), []);
-
-  const game = getGameSnapshot();
-  const theme = useMemo(() => makeTheme(getTheme()), [bump]);
+  const { game, themeMode } = useZenStore();
+  const theme = makeTheme(themeMode);
 
   const openPrestige = useCallback(() => {
     const snap = getGameSnapshot();
@@ -48,6 +50,12 @@ export function ProgressScreen(): React.JSX.Element {
     <View style={[styles.root, { backgroundColor: theme.canvas }]}>
       <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={{ paddingBottom: 24 + insets.bottom }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         <Text style={[styles.title, { color: theme.text }]}>Progress</Text>
 
         <View style={[styles.card, { backgroundColor: theme.panel }]}>
@@ -171,6 +179,7 @@ export function ProgressScreen(): React.JSX.Element {
             theme={theme}
           />
         </View>
+        </ScrollView>
       </SafeAreaView>
 
       <Modal visible={prestigeOpen} transparent animationType="fade">
@@ -248,6 +257,7 @@ function PrefRow({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1, paddingHorizontal: 16, paddingTop: 8 },
+  scroll: { flex: 1 },
   title: { fontSize: 22, fontWeight: '800', marginBottom: 12 },
   section: {
     marginTop: 18,

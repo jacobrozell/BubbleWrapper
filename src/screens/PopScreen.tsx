@@ -1,6 +1,11 @@
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from 'react';
 import {
   AccessibilityInfo,
   StyleSheet,
@@ -15,24 +20,31 @@ import { ContractCompleteModal } from '../components/ContractCompleteModal';
 import { ContractHeader } from '../components/ContractHeader';
 import { TrayFrame } from '../components/TrayFrame';
 import { ZenCanvas } from '../components/ZenCanvas';
+import { enrichOffersForDisplay } from '../content/offerGeneration';
 import { initPopAudio } from '../engine/audio';
+import { quotaForCompany } from '../economy/formulas';
 import type { RootTabParamList } from '../navigation/types';
 import {
-  advanceCompany,
-  getGameSnapshot,
-  getTheme,
-  subscribeZenStore,
+  advanceCompanyWithSelection,
+  setSelectedOfferIndex,
+  synchronizePendingContractOffers,
 } from '../storage/zenStore';
+import { useZenStore } from '../storage/useZenStore';
 import { bubbleOutlineBlueColors } from '../theme/bubbleCosmetic';
 import { makeTheme } from '../theme/tokens';
 
 export function PopScreen(): React.JSX.Element {
   const navigation =
     useNavigation<BottomTabNavigationProp<RootTabParamList>>();
-  const [, bump] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
 
-  useEffect(() => subscribeZenStore(() => bump((x) => x + 1)), []);
+  const { game, themeMode } = useZenStore();
+
+  useLayoutEffect(() => {
+    if (game.contractComplete) {
+      synchronizePendingContractOffers();
+    }
+  }, [game.contractComplete, game.pendingContractOffers.length]);
 
   useEffect(() => {
     void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
@@ -47,16 +59,23 @@ export function PopScreen(): React.JSX.Element {
     void initPopAudio();
   }, []);
 
-  const game = getGameSnapshot();
-  const theme = useMemo(() => makeTheme(getTheme()), [bump]);
+  const offerViews = enrichOffersForDisplay(
+    game.pendingContractOffers,
+    quotaForCompany,
+  );
+  const theme = makeTheme(themeMode);
 
   const hitSlopInset = game.touchTargetTier * 4;
   const bubbleOutline = game.hasBlueBubbleOutline
     ? bubbleOutlineBlueColors(theme)
     : null;
 
-  const onNextCompany = useCallback(() => {
-    advanceCompany();
+  const onSelectOffer = useCallback((index: number) => {
+    setSelectedOfferIndex(index);
+  }, []);
+
+  const onStartContract = useCallback(() => {
+    advanceCompanyWithSelection();
   }, []);
 
   const onReviewStats = useCallback(() => {
@@ -98,7 +117,9 @@ export function PopScreen(): React.JSX.Element {
         visible={game.contractComplete}
         game={game}
         theme={theme}
-        onNextCompany={onNextCompany}
+        offerViews={offerViews}
+        onSelectOffer={onSelectOffer}
+        onStartContract={onStartContract}
         onReviewStats={onReviewStats}
       />
     </View>
