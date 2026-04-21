@@ -4,10 +4,13 @@ import {
   NavigationContainer,
 } from '@react-navigation/native';
 import React, { useMemo } from 'react';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AchievementBannerHost } from './src/components/AchievementBannerHost';
 import { RootTabs } from './src/navigation/RootTabs';
+import { rootNavigationRef } from './src/navigation/rootNavigationRef';
 import { useZenStore } from './src/storage/useZenStore';
 
 function AppNavigation(): React.JSX.Element {
@@ -29,8 +32,11 @@ function AppNavigation(): React.JSX.Element {
   }, [themeMode]);
 
   return (
-    <NavigationContainer theme={navTheme}>
-      <RootTabs />
+    <NavigationContainer ref={rootNavigationRef} theme={navTheme}>
+      <View style={{ flex: 1 }}>
+        <RootTabs />
+        <AchievementBannerHost />
+      </View>
     </NavigationContainer>
   );
 }

@@ -42,7 +42,7 @@ Jest reports **lines / statements / branches / functions** executed during tests
 | Game state & contracts | `storage/zenStore/`, `storage/useZenStore.ts`, `content/offerGeneration.ts`, `content/runModifiers.ts`, `content/companies.ts` | Highest priority for % + branch coverage |
 | Choose next company / offers | `content/offerGeneration.ts`, related `zenStore` branches | Align with `docs/Choose_Next_Company_Spec.md` |
 | Cosmetics / theme | `theme/tokens.ts`, `theme/bubbleCosmetic.ts`, `content/cosmetics.ts` | Data + small helpers vs presentation |
-| Shell / nav | `navigation/RootTabs.tsx`, `App.tsx` (root) | Smoke tests when you add them; % is secondary |
+| Shell / nav | `navigation/RootTabs.tsx`, `navigation/rootNavigationRef.ts`, `App.tsx`, `components/AchievementBannerHost.tsx` | Smoke tests when you add them; % is secondary |
 
 **Optional later:** add `coverageThreshold` in `jest.config.js` per glob (e.g. minimum line % on `src/economy/**`) once baselines stabilize.
 
@@ -52,7 +52,7 @@ Jest reports **lines / statements / branches / functions** executed during tests
 | --- | --- | --- | --- |
 | Pop → stats | Lifetime pops, session start, theme persistence | `__tests__/zenStore.test.ts` | — |
 | Economy math | Credits, prestige, quotas, contract bonus | `__tests__/economy/formulas.test.ts` | Edge cases you care about (caps, rounding) |
-| Achievements (MVP) | Claimable / flair totals | `__tests__/economy/achievementsMvpLogic.test.ts` | Integration with `zenStore` if logic duplicates |
+| Achievements (MVP) | Claimable / flair totals; banner diff (`newlyClaimableAchievementsSince`) | `__tests__/economy/achievementsMvpLogic.test.ts` | Integration with `zenStore` if logic duplicates |
 | Audio | Pitch / playback-related pure logic | `__tests__/audioPitch.test.ts` | `audio.ts` integration only if bugs appear |
 | Stats / streaks | Daily streak helpers | `__tests__/statsLogic.test.ts` | UTC boundary cases if reported |
 | Phase B game loop | Contract complete, advance company, shop actions, offers | `__tests__/zenStore.phaseb.test.ts`, `__tests__/content/offerGeneration.test.ts` | `runModifiers` paths, full “choose next company” flow |
@@ -65,3 +65,4 @@ Jest reports **lines / statements / branches / functions** executed during tests
 | --- | --- |
 | 2026-04-20 | Initial matrix; `npm test`; `npm run test:coverage`, Jest `collectCoverageFrom`, feature↔path map, `coverage/` gitignored. |
 | 2026-04-20 | Purposeful-testing notes; `zenStore` smoke uses `commitPop`; tighter credits / audio assertions. |
+| 2026-04-20 | Achievement tap-to-claim banner: `newlyClaimableAchievementsSince` unit test; shell hosts `AchievementBannerHost` + `rootNavigationRef`. |

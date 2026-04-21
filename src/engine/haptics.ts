@@ -26,3 +26,10 @@ export function selectionTick(): void {
   if (!getHapticsEnabled()) return;
   void safeRun(() => Haptics.selectionAsync());
 }
+
+export function achievementBannerLight(): void {
+  if (!getHapticsEnabled()) return;
+  void safeRun(() =>
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
+  );
+}

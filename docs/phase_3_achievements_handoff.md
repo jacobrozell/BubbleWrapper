@@ -11,7 +11,7 @@
 1. **Achievements** are a second, explicit progression layer: players see goals, earn **rewards**, and feel the **dry workplace satire** in titles and descriptions.
 2. **Rewards grant Flair** (`flair` in `zenStore`) — a **separate** soft currency from **Credits**. Flair is spent only in the **Cosmetics** section of the Shop (MVP: bubble outline color). Credits remain the currency for **comfort / sensory / Credit-priced tray** upgrades in Phase B tables.
 3. **Companies carry industry tags** (e.g. Medical, Agricultural). **Tiered achievements** track how many **contracts you completed** for companies with each tag (see §3 for the canonical counting rule).
-4. **Calm UX:** no achievement toasts on **Pop** during zen play by default; surfacing lives on **Progress** (MVP **auto-grants Flair** on unlock—no “claim” button).
+4. **Calm UX:** optional compact **banner** when requirements are first met; **Flair** grants only on **tap-to-claim** on Progress (see `docs/achievements_flow_spec.md`).
 
 ---
 
@@ -24,7 +24,7 @@
 | Pure “what’s claimable” helper | `src/economy/achievementsMvpLogic.ts` |
 | Cosmetic defs (blue outline) | `src/content/cosmetics.ts` |
 | Shop cosmetics UI | `src/screens/ShopScreen.tsx` |
-| Progress achievement list | `src/screens/ProgressScreen.tsx` |
+| Progress achievement list + claim | `src/screens/ProgressScreen.tsx`; eligibility banner host | `src/components/AchievementBannerHost.tsx`, `docs/achievements_flow_spec.md` |
 | Blue rim colors | `src/theme/bubbleCosmetic.ts` → `PopScreen` / `ZenCanvas` / `BubbleItem` |
 
 ---
@@ -34,7 +34,7 @@
 | Phase B concept | Phase 3 use |
 |-----------------|-------------|
 | **Credits** (`credits`) | Unchanged: pops, contract bonus, **Credit-priced** upgrades in Shop. |
-| **Flair** (`flair`) | Achievement unlock → **add** `rewardFlair`; spent via **`purchaseCosmetic`** only. |
+| **Flair** (`flair`) | Achievement **claim** on Progress → **add** `rewardFlair`; spent via **`purchaseCosmetic`** only. |
 | **Shop** | Two wallets in one screen: **Upgrades (Credits)** vs **Cosmetics (Flair)**. |
 | **Contract complete** + **Next Company** | Increments **`lifetimeContractsCompleted`** (not reset by prestige); MVP achievements evaluate this counter; later: per-tag counters on the same hook. |
 | **Prestige** | **Keeps** Flair, owned cosmetics, claimed achievements, and **lifetime** contract count (MVP). Sector ladders (§3) should use the same **lifetime** rule. |
