@@ -85,6 +85,7 @@ export function getGameSnapshot(): GameSnapshot {
     claimedAchievementIds: [...readClaimedAchievementsSet()].sort(),
     hasBlueBubbleOutline: (cosmetics[COSMETIC_IDS.bubbleOutlineBlue] ?? 0) > 0,
     bubbleTintHex: readString(KEYS.bubbleTintHex) ?? '',
+    bubbleOutlineHex: readString(KEYS.bubbleOutlineHex) ?? '',
     visitedProgressTab: readNumber(KEYS.visitedProgressTab, 0) === 1,
     visitedShopTab: readNumber(KEYS.visitedShopTab, 0) === 1,
     pendingContractOffers,

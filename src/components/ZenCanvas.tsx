@@ -15,7 +15,6 @@ import { BubbleItem } from './BubbleItem';
 
 const GAP = 10;
 const BASE_BUBBLE = 58;
-const BUBBLE_COUNT = 480;
 
 type Props = {
   theme: ThemeTokens;
@@ -38,9 +37,9 @@ export function ZenCanvas({
   bubbleFillUnpopped,
   bubbleFillPopped,
 }: Props) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
-  const { cols, bubbleSize, data, cellWidth } = useMemo(() => {
+  const { cols, bubbleSize, data, cellWidth, estimatedItemSize } = useMemo(() => {
     const pad = SPACE.md * 2;
     const cols = Math.max(
       4,
@@ -49,9 +48,15 @@ export function ZenCanvas({
     const innerWidth = width - pad;
     const cellWidth = innerWidth / cols;
     const bubbleSize = Math.min(BASE_BUBBLE, cellWidth - GAP);
-    const data = Array.from({ length: BUBBLE_COUNT }, (_, i) => i);
-    return { cols, bubbleSize, data, cellWidth };
-  }, [width]);
+    const rowHeight = bubbleSize + GAP;
+    const visibleRows = Math.ceil(height / rowHeight);
+    // Keep a little extra content for momentum + pull-to-refresh,
+    // but avoid the confusing "endless" scroll.
+    const targetRows = Math.max(visibleRows + 2, 10);
+    const bubbleCount = cols * targetRows;
+    const data = Array.from({ length: bubbleCount }, (_, i) => i);
+    return { cols, bubbleSize, data, cellWidth, estimatedItemSize: rowHeight };
+  }, [height, width]);
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -119,6 +124,7 @@ export function ZenCanvas({
       key={cols}
       keyExtractor={(i) => String(i)}
       renderItem={renderItem}
+      estimatedItemSize={estimatedItemSize}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl

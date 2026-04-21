@@ -26,6 +26,8 @@ android-startup.log
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+logs/
+*.log
 
 # macOS
 .DS_Store

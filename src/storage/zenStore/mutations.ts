@@ -98,6 +98,17 @@ export function setBubbleTintHex(hex: string): void {
   emit();
 }
 
+export function setBubbleOutlineHex(hex: string): void {
+  ensurePhase3EconomyMigration();
+  const owned = readOwnedCosmetics();
+  if ((owned[COSMETIC_IDS.bubbleOutlineBlue] ?? 0) < 1) {
+    return;
+  }
+  const next = HEX6.test(hex) ? hex : '';
+  writeString(KEYS.bubbleOutlineHex, next);
+  emit();
+}
+
 /**
  * One transactional pop commit: lifetime, streak, credits, contract progress.
  * No-op when contract already complete (blocked pops — see Pop tab P4).

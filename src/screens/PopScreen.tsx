@@ -33,6 +33,7 @@ import {
 import { useZenStore } from '../storage/useZenStore';
 import {
   bubbleOutlineBlueColors,
+  bubbleOutlineColorsFromHex,
   bubbleTintFills,
 } from '../theme/bubbleCosmetic';
 import { makeTheme } from '../theme/tokens';
@@ -70,9 +71,14 @@ export function PopScreen(): React.JSX.Element {
   const theme = makeTheme(themeMode);
 
   const hitSlopInset = game.touchTargetTier * 4;
-  const bubbleOutline = game.hasBlueBubbleOutline
-    ? bubbleOutlineBlueColors(theme)
-    : null;
+  const outlineOwned = game.hasBlueBubbleOutline;
+  const outlineHex = game.bubbleOutlineHex.trim();
+  const bubbleOutline =
+    outlineOwned && outlineHex.length > 0
+      ? bubbleOutlineColorsFromHex(outlineHex) ?? bubbleOutlineBlueColors(theme)
+      : outlineOwned
+        ? bubbleOutlineBlueColors(theme)
+        : null;
 
   const tintOwned = (game.ownedCosmetics[COSMETIC_IDS.bubbleTint] ?? 0) > 0;
   const tintHex = game.bubbleTintHex.trim();

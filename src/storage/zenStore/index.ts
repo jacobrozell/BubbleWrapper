@@ -30,6 +30,7 @@ export {
   recordProgressTabOpened,
   recordShopTabOpened,
   refreshSheetOnly,
+  setBubbleOutlineHex,
   setBubbleTintHex,
   setHasSeenPrestigeExplainer,
   setHapticsEnabled,

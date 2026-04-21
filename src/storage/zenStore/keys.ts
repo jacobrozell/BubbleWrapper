@@ -27,6 +27,7 @@ export const KEYS = {
   visitedProgressTab: 'visitedProgressTab',
   visitedShopTab: 'visitedShopTab',
   bubbleTintHex: 'bubbleTintHex',
+  bubbleOutlineHex: 'bubbleOutlineHex',
 } as const;
 
 export const ALL_KEYS: string[] = [...Object.values(KEYS)];

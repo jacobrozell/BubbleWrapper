@@ -21,6 +21,7 @@ import {
   purchaseCosmetic,
   purchaseUpgrade,
   recordShopTabOpened,
+  setBubbleOutlineHex,
   setBubbleTintHex,
   type CosmeticPurchaseResult,
   type GameSnapshot,
@@ -236,7 +237,9 @@ function CosmeticBlock({
       : theme.shopUnaffordable;
   const a11y = `${def.title}, ${owned ? 'owned' : `${def.priceFlair} flair`}`;
   const showTintPicker = def.cosmeticKind === 'tint' && owned;
+  const showOutlinePicker = def.cosmeticKind === 'outline' && owned;
   const selectedHex = game.bubbleTintHex.trim().toLowerCase();
+  const selectedOutlineHex = game.bubbleOutlineHex.trim().toLowerCase();
 
   return (
     <View
@@ -245,7 +248,7 @@ function CosmeticBlock({
         {
           backgroundColor: theme.panel,
           borderColor: theme.bubbleBorder,
-          paddingBottom: showTintPicker ? 12 : 0,
+          paddingBottom: showTintPicker || showOutlinePicker ? 12 : 0,
         },
       ]}
       accessibilityLabel={a11y}
@@ -276,6 +279,10 @@ function CosmeticBlock({
           ) : def.cosmeticKind === 'tint' ? (
             <Text style={[styles.rowSub, { color: theme.mutedText }]}>
               Tap a swatch for unpopped bubble fill, or use default tray color.
+            </Text>
+          ) : def.cosmeticKind === 'outline' ? (
+            <Text style={[styles.rowSub, { color: theme.mutedText }]}>
+              Tap a swatch for bubble rim color, or use the default theme rim.
             </Text>
           ) : null}
         </View>
@@ -340,6 +347,55 @@ function CosmeticBlock({
                   {
                     backgroundColor: hex,
                     borderColor: on ? theme.flairAccent : 'rgba(127,127,127,0.35)',
+                  },
+                ]}
+              />
+            );
+          })}
+        </View>
+      ) : null}
+      {showOutlinePicker ? (
+        <View style={styles.tintSwatches}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Default bubble outline color from theme"
+            onPress={() => {
+              selectionTick();
+              setBubbleOutlineHex('');
+            }}
+            style={[
+              styles.tintDefault,
+              {
+                borderColor:
+                  selectedOutlineHex === ''
+                    ? theme.flairAccent
+                    : theme.bubbleBorder,
+                backgroundColor: theme.bubble,
+              },
+            ]}
+          >
+            <Text style={[styles.tintDefaultText, { color: theme.mutedText }]}>
+              Default
+            </Text>
+          </Pressable>
+          {BUBBLE_TINT_PRESET_HEXES.map((hex) => {
+            const on = selectedOutlineHex === hex.toLowerCase();
+            return (
+              <Pressable
+                key={hex}
+                accessibilityRole="button"
+                accessibilityLabel={`Bubble outline ${hex}`}
+                onPress={() => {
+                  selectionTick();
+                  setBubbleOutlineHex(hex);
+                }}
+                style={[
+                  styles.tintSwatch,
+                  {
+                    backgroundColor: hex,
+                    borderColor: on
+                      ? theme.flairAccent
+                      : 'rgba(127,127,127,0.35)',
                   },
                 ]}
               />

@@ -38,6 +38,8 @@ export type GameSnapshot = StatsSnapshot & {
   hasBlueBubbleOutline: boolean;
   /** Cosmetic: custom unpopped bubble fill (#RRGGBB). Empty string = theme default. */
   bubbleTintHex: string;
+  /** Cosmetic: custom bubble rim / outline (#RRGGBB). Empty string = theme default. */
+  bubbleOutlineHex: string;
   visitedProgressTab: boolean;
   visitedShopTab: boolean;
   pendingContractOffers: ContractOffer[];

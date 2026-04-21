@@ -50,12 +50,10 @@ function BubbleItemImpl({
   bubbleFillPopped,
 }: Props) {
   const [popped, setPopped] = useState(false);
-  const beganRef = useRef(false);
   const scale = useSharedValue(1);
 
   useEffect(() => {
     setPopped(false);
-    beganRef.current = false;
     scale.value = 1;
   }, [resetVersion, scale]);
 
@@ -65,27 +63,21 @@ function BubbleItemImpl({
 
   const pressIn = useCallback(() => {
     if (popped || popsDisabled) return;
-    beganRef.current = true;
     popPressIn();
     void playPop();
     scale.value = withSpring(PRESS_IN_SCALE, SPRING_CONFIG);
   }, [popped, popsDisabled, scale]);
 
   const pressOut = useCallback(() => {
-    if (!beganRef.current) {
-      scale.value = withSpring(1, SPRING_CONFIG);
-      return;
-    }
-    beganRef.current = false;
-    if (popped || popsDisabled) {
-      scale.value = withSpring(1, SPRING_CONFIG);
-      return;
-    }
+    scale.value = withSpring(1, SPRING_CONFIG);
+  }, [scale]);
+
+  const press = useCallback(() => {
+    if (popped || popsDisabled) return;
     setPopped(true);
     popComplete();
-    scale.value = withSpring(1, SPRING_CONFIG);
     onPop(id);
-  }, [id, onPop, popped, popsDisabled, scale]);
+  }, [id, onPop, popped, popsDisabled]);
 
   const hitSlop =
     hitSlopInset > 0
@@ -137,6 +129,7 @@ function BubbleItemImpl({
       accessibilityRole="button"
       accessibilityLabel="Bubble"
       hitSlop={hitSlop}
+      onPress={press}
       onPressIn={pressIn}
       onPressOut={pressOut}
       style={[animatedStyle, pressableStyle]}
