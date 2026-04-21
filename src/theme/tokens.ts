@@ -33,6 +33,8 @@ export type ThemeTokens = {
   shopAffordable: string;
   shopUnaffordable: string;
   shopOwned: string;
+  /** Achievement / cosmetic currency accent (Flair). */
+  flairAccent: string;
 };
 
 export function makeTheme(mode: ThemeMode): ThemeTokens {
@@ -59,6 +61,7 @@ export function makeTheme(mode: ThemeMode): ThemeTokens {
       shopAffordable: '#8fd4f0',
       shopUnaffordable: '#6a7384',
       shopOwned: '#9aa7b8',
+      flairAccent: '#c4b5fd',
     };
   }
   return {
@@ -83,5 +86,6 @@ export function makeTheme(mode: ThemeMode): ThemeTokens {
     shopAffordable: '#1f6f78',
     shopUnaffordable: 'rgba(27,34,48,0.38)',
     shopOwned: 'rgba(27,34,48,0.45)',
+    flairAccent: '#6d28d9',
   };
 }

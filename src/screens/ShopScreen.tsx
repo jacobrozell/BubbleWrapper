@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -8,14 +9,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+import { COSMETICS, type CosmeticDef } from '../content/cosmetics';
 import { UPGRADES, type UpgradeDef } from '../content/upgrades';
 import { nextTierPrice } from '../economy/formulas';
 import { selectionTick } from '../engine/haptics';
 import {
   getGameSnapshot,
   getTheme,
+  purchaseCosmetic,
   purchaseUpgrade,
   subscribeZenStore,
+  type CosmeticPurchaseResult,
   type PurchaseResult,
 } from '../storage/zenStore';
 import { makeTheme } from '../theme/tokens';
@@ -47,22 +51,49 @@ export function ShopScreen(): React.JSX.Element {
     [showToast],
   );
 
+  const onBuyCosmetic = useCallback(
+    (id: string) => {
+      selectionTick();
+      const res: CosmeticPurchaseResult = purchaseCosmetic(id);
+      if (res === 'unaffordable') showToast('Need more Flair');
+      else if (res === 'owned') showToast('Already owned');
+      else if (res === 'ok') showToast('Purchased');
+    },
+    [showToast],
+  );
+
   return (
     <View style={[styles.root, { backgroundColor: theme.canvas }]}>
       <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-        <View style={styles.headerRow}>
-          <Text style={[styles.title, { color: theme.text }]}>Shop</Text>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+        <Text style={[styles.title, { color: theme.text }]}>Shop</Text>
+        <View style={styles.walletRow}>
           <View accessibilityLabel={`Credits ${game.credits}`}>
-            <Text style={[styles.creditsLabel, { color: theme.mutedText }]}>
+            <Text style={[styles.walletLabel, { color: theme.mutedText }]}>
               Credits
             </Text>
-            <Text style={[styles.credits, { color: theme.currencyAccent }]}>
+            <Text style={[styles.walletValue, { color: theme.currencyAccent }]}>
               {game.credits.toLocaleString()}
+            </Text>
+          </View>
+          <View accessibilityLabel={`Flair ${game.flair}`}>
+            <Text style={[styles.walletLabel, { color: theme.mutedText }]}>
+              Flair
+            </Text>
+            <Text style={[styles.walletValue, { color: theme.flairAccent }]}>
+              {game.flair.toLocaleString()}
             </Text>
           </View>
         </View>
 
+        <Text style={[styles.sectionLabel, { color: theme.mutedText }]}>
+          Upgrades (Credits)
+        </Text>
         <View style={styles.list}>
           {UPGRADES.map((def) => (
             <ShopRow
@@ -74,6 +105,22 @@ export function ShopScreen(): React.JSX.Element {
             />
           ))}
         </View>
+
+        <Text style={[styles.sectionLabel, { color: theme.mutedText }]}>
+          Cosmetics (Flair)
+        </Text>
+        <View style={styles.list}>
+          {COSMETICS.map((def) => (
+            <CosmeticRow
+              key={def.id}
+              def={def}
+              game={game}
+              theme={theme}
+              onBuy={onBuyCosmetic}
+            />
+          ))}
+        </View>
+        </ScrollView>
 
         {toast ? (
           <View
@@ -162,18 +209,98 @@ function ShopRow({
   );
 }
 
+function CosmeticRow({
+  def,
+  game,
+  theme,
+  onBuy,
+}: {
+  def: CosmeticDef;
+  game: ReturnType<typeof getGameSnapshot>;
+  theme: ReturnType<typeof makeTheme>;
+  onBuy: (id: string) => void;
+}): React.JSX.Element {
+  const owned = (game.ownedCosmetics[def.id] ?? 0) > 0;
+  const canAfford = !owned && game.flair >= def.priceFlair;
+  const titleColor = owned ? theme.shopOwned : theme.text;
+  const priceColor = owned
+    ? theme.shopOwned
+    : canAfford
+      ? theme.flairAccent
+      : theme.shopUnaffordable;
+  const a11y = `${def.title}, ${owned ? 'owned' : `${def.priceFlair} flair`}`;
+
+  return (
+    <View
+      style={[
+        styles.row,
+        { height: ROW_H, backgroundColor: theme.panel, borderColor: theme.bubbleBorder },
+      ]}
+      accessibilityLabel={a11y}
+    >
+      <View style={{ flex: 1, paddingRight: 10 }}>
+        <Text
+          style={[styles.rowTitle, { color: titleColor }]}
+          numberOfLines={1}
+        >
+          {def.title}
+          {owned ? ' · Owned' : ''}
+        </Text>
+        {!owned ? (
+          <Text style={[styles.rowSub, { color: theme.mutedText }]}>
+            {def.description}
+          </Text>
+        ) : null}
+      </View>
+      {!owned ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Buy ${def.title} for ${def.priceFlair} flair`}
+          onPress={() => onBuy(def.id)}
+          disabled={!canAfford}
+          style={[
+            styles.buy,
+            {
+              borderColor: canAfford ? theme.flairAccent : theme.bubbleBorder,
+              opacity: canAfford ? 1 : 0.55,
+            },
+          ]}
+        >
+          <Text style={{ color: priceColor, fontWeight: '800' }}>
+            {def.priceFlair.toLocaleString()}
+          </Text>
+          <Text style={{ color: priceColor, fontWeight: '800' }}>Buy</Text>
+        </Pressable>
+      ) : (
+        <Text style={{ color: theme.shopOwned, fontWeight: '800' }}>Owned</Text>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1, paddingHorizontal: 16, paddingTop: 8 },
-  headerRow: {
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 28 },
+  title: { fontSize: 22, fontWeight: '800', marginBottom: 10 },
+  walletRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    marginBottom: 14,
+    marginBottom: 16,
+    gap: 12,
   },
-  title: { fontSize: 22, fontWeight: '800' },
-  creditsLabel: { fontSize: 11, textAlign: 'right', color: '#888' },
-  credits: { fontSize: 18, fontWeight: '800', textAlign: 'right' },
+  walletLabel: { fontSize: 11, marginBottom: 2 },
+  walletValue: { fontSize: 18, fontWeight: '800' },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    marginTop: 4,
+  },
   list: { gap: 10 },
   row: {
     borderRadius: 14,

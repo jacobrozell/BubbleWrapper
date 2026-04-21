@@ -22,6 +22,10 @@ This document is intentionally short and updated as we discover real-device quir
 - **Stats UX**: Add “Session pops” and “Today pops” to the overlay; add a reset-confirm sheet for destructive actions.
 - **Accessibility**: Provide reduced motion option, large touch targets in bottom zone, and a “sound off / haptics off” toggle.
 
+## Gameplay / progression (future)
+
+- **Choose next company + run modifiers**: Let the player pick which company (or narrative equivalent) to help next. Runs can grant **bonuses or penalties** that act as lightweight modifiers (economy, time pressure, bubble behavior, scoring) so sessions stay varied. Brainstorm modifier families that stay readable on a small screen and do not overwhelm the core pop-and-breathe loop.
+
 ## Improvements (low/medium impact)
 
 - **Theme polish**: Slightly different bubble color than canvas to improve depth cues without adding clutter.
@@ -30,5 +34,6 @@ This document is intentionally short and updated as we discover real-device quir
 
 ## Change Log
 
+- **2026-04-20**: Added future idea: choose-next-company flow with bonus/penalty run modifiers (design TBD).
 - **2026-04-20**: Created as a living “next steps / issues” scratchpad for the project.
 

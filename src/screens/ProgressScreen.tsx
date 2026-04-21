@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+import { ACHIEVEMENT_MVP } from '../content/achievementsMvp';
 import { selectionTick } from '../engine/haptics';
 import {
   confirmPrestige,
@@ -68,6 +69,51 @@ export function ProgressScreen(): React.JSX.Element {
             Companies served:{' '}
             <Text style={{ color: theme.text }}>{game.companiesCompleted}</Text>
           </Text>
+          <Text style={[styles.line, { color: theme.mutedText }]}>
+            Lifetime contracts:{' '}
+            <Text style={{ color: theme.text }}>
+              {game.lifetimeContractsCompleted}
+            </Text>
+          </Text>
+          <Text style={[styles.line, { color: theme.mutedText }]}>
+            Flair:{' '}
+            <Text style={{ color: theme.flairAccent, fontWeight: '700' }}>
+              {game.flair}
+            </Text>
+          </Text>
+        </View>
+
+        <Text style={[styles.section, { color: theme.mutedText }]}>
+          Achievements
+        </Text>
+        <View style={[styles.card, { backgroundColor: theme.panel, gap: 14 }]}>
+          {ACHIEVEMENT_MVP.map((a) => {
+            const done = game.claimedAchievementIds.includes(a.id);
+            const progress = Math.min(
+              game.lifetimeContractsCompleted,
+              a.thresholdLifetimeContracts,
+            );
+            return (
+              <View key={a.id} style={styles.achBlock}>
+                <Text style={[styles.achTitle, { color: theme.text }]}>
+                  {a.title}
+                </Text>
+                <Text style={[styles.achSub, { color: theme.mutedText }]}>
+                  {a.description}
+                </Text>
+                <Text
+                  style={[
+                    styles.achMeta,
+                    { color: done ? theme.flairAccent : theme.mutedText },
+                  ]}
+                >
+                  {done
+                    ? `Complete · +${a.rewardFlair} Flair`
+                    : `${progress} / ${a.thresholdLifetimeContracts} contracts`}
+                </Text>
+              </View>
+            );
+          })}
         </View>
 
         <Text style={[styles.section, { color: theme.mutedText }]}>Career</Text>
@@ -134,10 +180,11 @@ export function ProgressScreen(): React.JSX.Element {
               Reset career?
             </Text>
             <Text style={[styles.modalBody, { color: theme.mutedText }]}>
-              Resets Credits, all Shop upgrades, and contract progress
-              (company index). Keeps lifetime pops and daily streaks. Applies a
-              permanent Credit multiplier: currently ×
-              {game.prestigeMultiplier.toFixed(2)}, then +{pctNext}% after reset.
+              Resets Credits, Credit-priced Shop upgrades, and contract progress
+              (company index). Keeps lifetime pops, daily streaks, Flair,
+              cosmetics, and achievement progress. Applies a permanent Credit
+              multiplier: currently ×{game.prestigeMultiplier.toFixed(2)}, then +
+              {pctNext}% after reset.
             </Text>
             <View style={styles.modalActions}>
               <Pressable
@@ -264,4 +311,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalBtnPrimaryText: { color: '#fff', fontWeight: '800' },
+  achBlock: { gap: 4 },
+  achTitle: { fontSize: 15, fontWeight: '800' },
+  achSub: { fontSize: 13, lineHeight: 18 },
+  achMeta: { fontSize: 12, fontWeight: '700', marginTop: 2 },
 });

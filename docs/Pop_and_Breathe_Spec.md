@@ -70,10 +70,10 @@ All haptics must **fail silently** on unsupported platforms.
 - `engine/physics.ts` — spring + scale constants.
 - `engine/haptics.ts` — mapping + safe fallbacks + `zenStore` haptics toggle.
 - `engine/audio.ts` — preload + `playPop()` + pitch helper + `zenStore` sound / upgrade hooks.
-- `storage/zenStore.ts` — MMKV persistence (`createMMKV`) + pub/sub for UI refresh (memory fallback on web); **contract, Credits, prestige, Shop**.
+- `storage/zenStore.ts` — MMKV persistence (`createMMKV`) + pub/sub for UI refresh (memory fallback on web); **contract, Credits, Flair, cosmetics, MVP achievements, prestige, Shop**.
 - `storage/statsLogic.ts` — pure streak/day math (unit-tested).
 - `economy/formulas.ts` — pure quota / prestige / earn-rate helpers (unit-tested).
-- `content/companies.ts`, `content/upgrades.ts` — static tables for contracts and Shop.
+- `content/companies.ts`, `content/upgrades.ts`, `content/cosmetics.ts`, `content/achievementsMvp.ts` — static tables for contracts, Credit upgrades, Flair cosmetics, and MVP achievements.
 - `gestures/gestureZones.ts` — legacy bottom band constant (optional; main chrome is tabs).
 
 ### Navigation
@@ -84,7 +84,7 @@ All haptics must **fail silently** on unsupported platforms.
 
 - `screens/PopScreen.tsx` — contract header, ambient layer, framed tray, `ZenCanvas`, contract-complete modal (**Next Company**).
 - `screens/ProgressScreen.tsx` — stats, prestige flow + confirm modal, theme / haptics / sound preferences.
-- `screens/ShopScreen.tsx` — Credit-priced upgrades, purchase feedback.
+- `screens/ShopScreen.tsx` — Credit-priced upgrades, Flair-priced cosmetics, purchase feedback.
 - `ZenCanvas` — FlashList grid; pull-to-refresh calls `refreshSheetOnly()`; pops call `commitPop()`.
 - `BubbleItem` — press state machine + Reanimated scale; **blocked when contract complete** (`popsDisabled`); optional **hit slop** from Shop.
 
@@ -109,6 +109,11 @@ All haptics must **fail silently** on unsupported platforms.
 | `hasSeenPrestigeExplainer` | 0 \| 1 | First-time prestige hint flag |
 | `hapticsEnabled` | 0 \| 1 | Master haptics toggle |
 | `soundEnabled` | 0 \| 1 | Master pop audio toggle |
+| `flair` | number | **Flair** — currency from achievements; spent on **cosmetics** only |
+| `lifetimeContractsCompleted` | number | All-time contracts cleared (not reset by prestige) |
+| `phase3EconomyMigrated` | 0 \| 1 | One-time migration flag for Flair / lifetime counters |
+| `ownedCosmeticsJson` | string | JSON map of `cosmeticId` → `1` when owned |
+| `claimedAchievementsJson` | string | JSON string array of claimed MVP achievement ids |
 
 ## Gesture Dictionary
 
@@ -133,3 +138,4 @@ All haptics must **fail silently** on unsupported platforms.
 - **2026-04-20**: Initial in-repo spec authored from the implementation plan; baseline RN scaffold and feature modules landed alongside this document.
 - **2026-04-20**: Implemented Expo app shell, FlashList `ZenCanvas`, Reanimated `BubbleItem`, bottom-zone gestures + `StatsOverlay`, MMKV-backed `zenStore`, haptics + preloaded pop audio with pitch variance, and Jest coverage for pure stats/audio helpers.
 - **2026-04-21**: Phase B — React Navigation tabs (`PopScreen`, `ProgressScreen`, `ShopScreen`), contract/Credits/prestige/Shop in `zenStore`, content + `economy/formulas`, ambient + tray on Pop, contract-complete modal, preferences and prestige confirm on Progress, pull-to-refresh = new sheet only; removed `StatsOverlay` / `ZenScreen`.
+- **2026-04-21**: Phase 3 MVP — **Flair** currency (achievement rewards), lifetime contract counter, MVP achievements (`content/achievementsMvp.ts`), **Cosmetics** section in Shop (`content/cosmetics.ts`, `purchaseCosmetic`), blue bubble outline cosmetic, `achievementsMvpLogic` + tests; prestige keeps Flair, cosmetics, and achievement claims.

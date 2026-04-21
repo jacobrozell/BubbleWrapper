@@ -1,7 +1,13 @@
 import { Platform, TurboModuleRegistry } from 'react-native';
 
+import { ACHIEVEMENT_MVP } from '../content/achievementsMvp';
 import { companyAt } from '../content/companies';
+import { COSMETIC_IDS, findCosmetic } from '../content/cosmetics';
 import { findUpgrade } from '../content/upgrades';
+import {
+  claimableAchievements,
+  totalRewardFlair,
+} from '../economy/achievementsMvpLogic';
 import {
   contractCompletionCreditsBonus,
   earnCreditsPerPop,
@@ -42,6 +48,11 @@ const KEYS = {
   hasSeenPrestigeExplainer: 'hasSeenPrestigeExplainer',
   hapticsEnabled: 'hapticsEnabled',
   soundEnabled: 'soundEnabled',
+  flair: 'flair',
+  lifetimeContractsCompleted: 'lifetimeContractsCompleted',
+  phase3EconomyMigrated: 'phase3EconomyMigrated',
+  ownedCosmeticsJson: 'ownedCosmeticsJson',
+  claimedAchievementsJson: 'claimedAchievementsJson',
 } as const;
 
 const ALL_KEYS: string[] = [...Object.values(KEYS)];
@@ -150,6 +161,74 @@ function writeOwnedUpgrades(map: Record<string, number>): void {
   writeString(KEYS.ownedUpgradesJson, JSON.stringify(map));
 }
 
+function readOwnedCosmetics(): Record<string, number> {
+  const raw = readString(KEYS.ownedCosmeticsJson);
+  if (!raw) return {};
+  try {
+    const o = JSON.parse(raw) as unknown;
+    if (typeof o !== 'object' || o == null || Array.isArray(o)) return {};
+    return o as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+
+function writeOwnedCosmetics(map: Record<string, number>): void {
+  writeString(KEYS.ownedCosmeticsJson, JSON.stringify(map));
+}
+
+function readClaimedAchievementsSet(): Set<string> {
+  const raw = readString(KEYS.claimedAchievementsJson);
+  if (!raw) return new Set();
+  try {
+    const o = JSON.parse(raw) as unknown;
+    if (!Array.isArray(o)) return new Set();
+    return new Set(o.filter((x): x is string => typeof x === 'string'));
+  } catch {
+    return new Set();
+  }
+}
+
+function writeClaimedAchievementsSet(set: Set<string>): void {
+  writeString(
+    KEYS.claimedAchievementsJson,
+    JSON.stringify([...set].sort()),
+  );
+}
+
+/** Grants Flair for any MVP achievements whose threshold is met and not yet claimed. */
+function runAchievementClaims(lifetimeContracts: number): boolean {
+  const claimed = readClaimedAchievementsSet();
+  const claimable = claimableAchievements(
+    ACHIEVEMENT_MVP,
+    lifetimeContracts,
+    claimed,
+  );
+  if (claimable.length === 0) return false;
+  const add = totalRewardFlair(claimable);
+  for (const c of claimable) {
+    claimed.add(c.id);
+  }
+  writeNumber(KEYS.flair, readNumber(KEYS.flair, 0) + add);
+  writeClaimedAchievementsSet(claimed);
+  return true;
+}
+
+/**
+ * One-time: seed lifetime contract counter from legacy `companiesCompleted`, then
+ * backfill achievement Flair for thresholds already passed.
+ */
+function ensurePhase3EconomyMigration(): void {
+  if (readNumber(KEYS.phase3EconomyMigrated, 0) === 1) {
+    return;
+  }
+  const cc = readNumber(KEYS.companiesCompleted, 0);
+  writeNumber(KEYS.lifetimeContractsCompleted, cc);
+  runAchievementClaims(cc);
+  writeNumber(KEYS.phase3EconomyMigrated, 1);
+  emit();
+}
+
 function bumpSheetReset(): void {
   const v = readNumber(KEYS.sheetResetVersion, 0) + 1;
   writeNumber(KEYS.sheetResetVersion, v);
@@ -202,13 +281,20 @@ export type GameSnapshot = StatsSnapshot & {
   creditsPerPopTier: number;
   traySkinId: string | null;
   popSoundMutedOwned: boolean;
+  flair: number;
+  lifetimeContractsCompleted: number;
+  ownedCosmetics: Record<string, number>;
+  claimedAchievementIds: string[];
+  hasBlueBubbleOutline: boolean;
 };
 
 export function getGameSnapshot(): GameSnapshot {
+  ensurePhase3EconomyMigration();
   const stats = getStatsSnapshot();
   const companyIndex = readNumber(KEYS.companyIndex, 0);
   const co = companyAt(companyIndex);
   const owned = readOwnedUpgrades();
+  const cosmetics = readOwnedCosmetics();
   const prestigeCount = readNumber(KEYS.prestigeCount, 0);
   const trayOwned = (owned['tray_corporate_dark'] ?? 0) > 0;
 
@@ -234,6 +320,11 @@ export function getGameSnapshot(): GameSnapshot {
     creditsPerPopTier: owned['credits_per_pop'] ?? 0,
     traySkinId: trayOwned ? 'tray_corporate_dark' : null,
     popSoundMutedOwned: (owned['pop_sound_muted'] ?? 0) > 0,
+    flair: readNumber(KEYS.flair, 0),
+    lifetimeContractsCompleted: readNumber(KEYS.lifetimeContractsCompleted, 0),
+    ownedCosmetics: { ...cosmetics },
+    claimedAchievementIds: [...readClaimedAchievementsSet()].sort(),
+    hasBlueBubbleOutline: (cosmetics[COSMETIC_IDS.bubbleOutlineBlue] ?? 0) > 0,
   };
 }
 
@@ -336,6 +427,7 @@ export function advanceCompany(): void {
   if (readNumber(KEYS.contractComplete, 0) !== 1) {
     return;
   }
+  ensurePhase3EconomyMigration();
   const bonus = contractCompletionCreditsBonus();
   if (bonus > 0) {
     writeNumber(KEYS.credits, readNumber(KEYS.credits, 0) + bonus);
@@ -347,11 +439,43 @@ export function advanceCompany(): void {
   writeNumber(KEYS.contractComplete, 0);
   const cc = readNumber(KEYS.companiesCompleted, 0) + 1;
   writeNumber(KEYS.companiesCompleted, cc);
+  const lt = readNumber(KEYS.lifetimeContractsCompleted, 0) + 1;
+  writeNumber(KEYS.lifetimeContractsCompleted, lt);
+  runAchievementClaims(lt);
   bumpSheetReset();
   emit();
 }
 
 export type PurchaseResult = 'ok' | 'maxed' | 'unaffordable' | 'unknown';
+
+export type CosmeticPurchaseResult =
+  | 'ok'
+  | 'owned'
+  | 'unaffordable'
+  | 'unknown';
+
+export function purchaseCosmetic(cosmeticId: string): CosmeticPurchaseResult {
+  ensurePhase3EconomyMigration();
+  const def = findCosmetic(cosmeticId);
+  if (!def) return 'unknown';
+
+  const ownedMap = readOwnedCosmetics();
+  if ((ownedMap[cosmeticId] ?? 0) > 0) {
+    return 'owned';
+  }
+
+  const price = def.priceFlair;
+  const flair = readNumber(KEYS.flair, 0);
+  if (flair < price) {
+    return 'unaffordable';
+  }
+
+  writeNumber(KEYS.flair, flair - price);
+  ownedMap[cosmeticId] = 1;
+  writeOwnedCosmetics(ownedMap);
+  emit();
+  return 'ok';
+}
 
 export function purchaseUpgrade(upgradeId: string): PurchaseResult {
   const def = findUpgrade(upgradeId);
@@ -377,8 +501,9 @@ export function purchaseUpgrade(upgradeId: string): PurchaseResult {
 }
 
 /**
- * Prestige: hard reset of career progression (credits, contract, upgrades).
- * Keeps lifetimePops and daily streak stats; increments prestigeCount.
+ * Prestige: hard reset of career progression (credits, contract, Credit-tier upgrades).
+ * Keeps lifetimePops, daily streak stats, Flair, cosmetics, achievement claims,
+ * and lifetimeContractsCompleted; increments prestigeCount.
  */
 export function confirmPrestige(): void {
   const pc = readNumber(KEYS.prestigeCount, 0) + 1;

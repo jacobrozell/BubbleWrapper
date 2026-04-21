@@ -27,6 +27,9 @@ type Props = {
   popsDisabled?: boolean;
   /** Extra hit slop from Shop touch-target upgrades (points per side). */
   hitSlopInset?: number;
+  /** When set, overrides `theme.bubbleBorder` / highlight for rim read. */
+  bubbleBorderUnpopped?: string;
+  bubbleBorderPopped?: string;
 };
 
 function BubbleItemImpl({
@@ -37,6 +40,8 @@ function BubbleItemImpl({
   onPop,
   popsDisabled = false,
   hitSlopInset = 0,
+  bubbleBorderUnpopped,
+  bubbleBorderPopped,
 }: Props) {
   const [popped, setPopped] = useState(false);
   const beganRef = useRef(false);
@@ -86,13 +91,16 @@ function BubbleItemImpl({
         }
       : undefined;
 
+  const borderUnpopped = bubbleBorderUnpopped ?? theme.bubbleBorder;
+  const borderPopped = bubbleBorderPopped ?? theme.highlight;
+
   const surface: StyleProp<ViewStyle> = {
     width: size,
     height: size,
     borderRadius: size * 0.36,
     backgroundColor: theme.bubble,
     borderWidth: popped ? 2 : 1,
-    borderColor: popped ? theme.highlight : theme.bubbleBorder,
+    borderColor: popped ? borderPopped : borderUnpopped,
     shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: popped ? 2 : 6 },
     shadowOpacity: popped ? 0.14 : 0.32,

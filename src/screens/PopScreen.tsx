@@ -23,6 +23,7 @@ import {
   getTheme,
   subscribeZenStore,
 } from '../storage/zenStore';
+import { bubbleOutlineBlueColors } from '../theme/bubbleCosmetic';
 import { makeTheme } from '../theme/tokens';
 
 export function PopScreen(): React.JSX.Element {
@@ -50,6 +51,9 @@ export function PopScreen(): React.JSX.Element {
   const theme = useMemo(() => makeTheme(getTheme()), [bump]);
 
   const hitSlopInset = game.touchTargetTier * 4;
+  const bubbleOutline = game.hasBlueBubbleOutline
+    ? bubbleOutlineBlueColors(theme)
+    : null;
 
   const onNextCompany = useCallback(() => {
     advanceCompany();
@@ -77,6 +81,8 @@ export function PopScreen(): React.JSX.Element {
                 resetVersion={game.sheetResetVersion}
                 hitSlopInset={hitSlopInset}
                 popsDisabled={game.contractComplete}
+                bubbleBorderUnpopped={bubbleOutline?.unpopped}
+                bubbleBorderPopped={bubbleOutline?.popped}
               />
             </TrayFrame>
           </View>
