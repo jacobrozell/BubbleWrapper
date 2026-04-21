@@ -34,6 +34,12 @@ yarn-error.*
 # local env files
 .env*.local
 
+# Cursor — local MCP config (see README)
+.cursor/mcp.json
+
+# JetBrains
+.idea/
+
 # typescript
 *.tsbuildinfo
 
