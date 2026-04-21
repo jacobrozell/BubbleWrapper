@@ -15,9 +15,11 @@ export {
 
 export { getGameSnapshot, getStatsSnapshot, getTheme } from './snapshots';
 
+export type { ClaimMvpAchievementResult } from './mutations';
 export {
   advanceCompany,
   advanceCompanyWithSelection,
+  claimMvpAchievement,
   commitPop,
   confirmPrestige,
   getHapticsEnabled,
@@ -25,7 +27,10 @@ export {
   purchaseCosmetic,
   purchaseUpgrade,
   recordPop,
+  recordProgressTabOpened,
+  recordShopTabOpened,
   refreshSheetOnly,
+  setBubbleTintHex,
   setHasSeenPrestigeExplainer,
   setHapticsEnabled,
   setSelectedOfferIndex,

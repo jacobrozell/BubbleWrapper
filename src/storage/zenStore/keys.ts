@@ -24,6 +24,9 @@ export const KEYS = {
   pendingOffersJson: 'pendingOffersJson',
   selectedOfferIndex: 'selectedOfferIndex',
   activeModifierIdsJson: 'activeModifierIdsJson',
+  visitedProgressTab: 'visitedProgressTab',
+  visitedShopTab: 'visitedShopTab',
+  bubbleTintHex: 'bubbleTintHex',
 } as const;
 
 export const ALL_KEYS: string[] = [...Object.values(KEYS)];

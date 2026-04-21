@@ -1,9 +1,5 @@
-import { ACHIEVEMENT_MVP } from '../../content/achievementsMvp';
 import type { ContractOffer } from '../../content/offerGeneration';
-import {
-  claimableAchievements,
-  totalRewardFlair,
-} from '../../economy/achievementsMvpLogic';
+import type { AchievementProgressInput } from '../../economy/achievementsMvpLogic';
 
 import { emit } from './subscription';
 import { KEYS } from './keys';
@@ -109,27 +105,18 @@ export function readActiveModifierIds(): string[] {
   }
 }
 
-/** Grants Flair for any MVP achievements whose threshold is met and not yet claimed. */
-export function runAchievementClaims(lifetimeContracts: number): boolean {
-  const claimed = readClaimedAchievementsSet();
-  const claimable = claimableAchievements(
-    ACHIEVEMENT_MVP,
-    lifetimeContracts,
-    claimed,
-  );
-  if (claimable.length === 0) return false;
-  const add = totalRewardFlair(claimable);
-  for (const c of claimable) {
-    claimed.add(c.id);
-  }
-  writeNumber(KEYS.flair, readNumber(KEYS.flair, 0) + add);
-  writeClaimedAchievementsSet(claimed);
-  return true;
+export function readAchievementProgressInput(): AchievementProgressInput {
+  return {
+    lifetimeContractsCompleted: readNumber(KEYS.lifetimeContractsCompleted, 0),
+    lifetimePops: readNumber(KEYS.lifetimePops, 0),
+    visitedProgress: readNumber(KEYS.visitedProgressTab, 0) === 1,
+    visitedShop: readNumber(KEYS.visitedShopTab, 0) === 1,
+  };
 }
 
 /**
- * One-time: seed lifetime contract counter from legacy `companiesCompleted`, then
- * backfill achievement Flair for thresholds already passed.
+ * One-time: seed lifetime contract counter from legacy `companiesCompleted`.
+ * Achievements are claimed on the Progress tab (tap when ready).
  */
 export function ensurePhase3EconomyMigration(): void {
   if (readNumber(KEYS.phase3EconomyMigrated, 0) === 1) {
@@ -137,7 +124,6 @@ export function ensurePhase3EconomyMigration(): void {
   }
   const cc = readNumber(KEYS.companiesCompleted, 0);
   writeNumber(KEYS.lifetimeContractsCompleted, cc);
-  runAchievementClaims(cc);
   writeNumber(KEYS.phase3EconomyMigrated, 1);
   emit();
 }

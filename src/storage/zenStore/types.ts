@@ -36,6 +36,10 @@ export type GameSnapshot = StatsSnapshot & {
   ownedCosmetics: Record<string, number>;
   claimedAchievementIds: string[];
   hasBlueBubbleOutline: boolean;
+  /** Cosmetic: custom unpopped bubble fill (#RRGGBB). Empty string = theme default. */
+  bubbleTintHex: string;
+  visitedProgressTab: boolean;
+  visitedShopTab: boolean;
   pendingContractOffers: ContractOffer[];
   selectedOfferIndex: number;
   recommendedOfferIndex: number;

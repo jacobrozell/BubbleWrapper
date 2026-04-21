@@ -19,6 +19,8 @@ type Props = {
   popsDisabled?: boolean;
   bubbleBorderUnpopped?: string;
   bubbleBorderPopped?: string;
+  bubbleFillUnpopped?: string;
+  bubbleFillPopped?: string;
 };
 
 export function ZenCanvas({
@@ -28,6 +30,8 @@ export function ZenCanvas({
   popsDisabled = false,
   bubbleBorderUnpopped,
   bubbleBorderPopped,
+  bubbleFillUnpopped,
+  bubbleFillPopped,
 }: Props) {
   const { width } = useWindowDimensions();
 
@@ -75,12 +79,16 @@ export function ZenCanvas({
           hitSlopInset={hitSlopInset}
           bubbleBorderUnpopped={bubbleBorderUnpopped}
           bubbleBorderPopped={bubbleBorderPopped}
+          bubbleFillUnpopped={bubbleFillUnpopped}
+          bubbleFillPopped={bubbleFillPopped}
         />
       </View>
     ),
     [
       bubbleBorderPopped,
       bubbleBorderUnpopped,
+      bubbleFillPopped,
+      bubbleFillUnpopped,
       bubbleSize,
       cellWidth,
       hitSlopInset,

@@ -1,4 +1,4 @@
-import { findCosmetic } from '../../content/cosmetics';
+import { COSMETIC_IDS, findCosmetic } from '../../content/cosmetics';
 import {
   buildContractOffers,
   recommendedOfferIndex,
@@ -11,6 +11,8 @@ import {
   quotaForCompany,
 } from '../../economy/formulas';
 
+import { ACHIEVEMENT_MVP } from '../../content/achievementsMvp';
+import { achievementMet } from '../../economy/achievementsMvpLogic';
 import { advanceDailyStreak, utcDayString } from '../statsLogic';
 
 import { backend } from './backend';
@@ -18,11 +20,13 @@ import {
   bumpSheetReset,
   ensurePhase3EconomyMigration,
   parseContractOffersJson,
+  readAchievementProgressInput,
   readActiveModifierIds,
+  readClaimedAchievementsSet,
   readPendingContractOffers,
   readOwnedCosmetics,
   readOwnedUpgrades,
-  runAchievementClaims,
+  writeClaimedAchievementsSet,
   writeOwnedCosmetics,
   writeOwnedUpgrades,
 } from './helpers';
@@ -60,6 +64,37 @@ export function getSoundEnabled(): boolean {
 
 export function setHasSeenPrestigeExplainer(seen: boolean): void {
   writeNumber(KEYS.hasSeenPrestigeExplainer, seen ? 1 : 0);
+  emit();
+}
+
+export function recordProgressTabOpened(): void {
+  ensurePhase3EconomyMigration();
+  if (readNumber(KEYS.visitedProgressTab, 0) === 1) {
+    return;
+  }
+  writeNumber(KEYS.visitedProgressTab, 1);
+  emit();
+}
+
+export function recordShopTabOpened(): void {
+  ensurePhase3EconomyMigration();
+  if (readNumber(KEYS.visitedShopTab, 0) === 1) {
+    return;
+  }
+  writeNumber(KEYS.visitedShopTab, 1);
+  emit();
+}
+
+const HEX6 = /^#[0-9a-fA-F]{6}$/;
+
+export function setBubbleTintHex(hex: string): void {
+  ensurePhase3EconomyMigration();
+  const owned = readOwnedCosmetics();
+  if ((owned[COSMETIC_IDS.bubbleTint] ?? 0) < 1) {
+    return;
+  }
+  const next = HEX6.test(hex) ? hex : '';
+  writeString(KEYS.bubbleTintHex, next);
   emit();
 }
 
@@ -116,6 +151,7 @@ export function commitPop(now = Date.now()): void {
     writeNumber(KEYS.contractComplete, 1);
   }
 
+  ensurePhase3EconomyMigration();
   emit();
 }
 
@@ -207,7 +243,6 @@ export function advanceCompanyWithSelection(offerIndex?: number): void {
   writeNumber(KEYS.companiesCompleted, cc);
   const lt = readNumber(KEYS.lifetimeContractsCompleted, 0) + 1;
   writeNumber(KEYS.lifetimeContractsCompleted, lt);
-  runAchievementClaims(lt);
   bumpSheetReset();
   emit();
 }
@@ -219,6 +254,33 @@ export function advanceCompany(): void {
   }
   synchronizePendingContractOffers();
   advanceCompanyWithSelection();
+}
+
+export type ClaimMvpAchievementResult =
+  | 'ok'
+  | 'not_ready'
+  | 'already_claimed'
+  | 'unknown';
+
+/** Awards Flair for one MVP achievement after the player claims it on Progress. */
+export function claimMvpAchievement(
+  achievementId: string,
+): ClaimMvpAchievementResult {
+  ensurePhase3EconomyMigration();
+  const def = ACHIEVEMENT_MVP.find((d) => d.id === achievementId);
+  if (!def) return 'unknown';
+
+  const claimed = readClaimedAchievementsSet();
+  if (claimed.has(achievementId)) return 'already_claimed';
+
+  const input = readAchievementProgressInput();
+  if (!achievementMet(def, input)) return 'not_ready';
+
+  claimed.add(achievementId);
+  writeClaimedAchievementsSet(claimed);
+  writeNumber(KEYS.flair, readNumber(KEYS.flair, 0) + def.rewardFlair);
+  emit();
+  return 'ok';
 }
 
 export function purchaseCosmetic(cosmeticId: string): CosmeticPurchaseResult {

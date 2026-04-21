@@ -20,6 +20,7 @@ import { ContractCompleteModal } from '../components/ContractCompleteModal';
 import { ContractHeader } from '../components/ContractHeader';
 import { TrayFrame } from '../components/TrayFrame';
 import { ZenCanvas } from '../components/ZenCanvas';
+import { COSMETIC_IDS } from '../content/cosmetics';
 import { enrichOffersForDisplay } from '../content/offerGeneration';
 import { initPopAudio } from '../engine/audio';
 import { quotaForCompany } from '../economy/formulas';
@@ -30,7 +31,10 @@ import {
   synchronizePendingContractOffers,
 } from '../storage/zenStore';
 import { useZenStore } from '../storage/useZenStore';
-import { bubbleOutlineBlueColors } from '../theme/bubbleCosmetic';
+import {
+  bubbleOutlineBlueColors,
+  bubbleTintFills,
+} from '../theme/bubbleCosmetic';
 import { makeTheme } from '../theme/tokens';
 
 export function PopScreen(): React.JSX.Element {
@@ -70,6 +74,11 @@ export function PopScreen(): React.JSX.Element {
     ? bubbleOutlineBlueColors(theme)
     : null;
 
+  const tintOwned = (game.ownedCosmetics[COSMETIC_IDS.bubbleTint] ?? 0) > 0;
+  const tintHex = game.bubbleTintHex.trim();
+  const tintFills =
+    tintOwned && tintHex.length > 0 ? bubbleTintFills(tintHex) : null;
+
   const onSelectOffer = useCallback((index: number) => {
     setSelectedOfferIndex(index);
   }, []);
@@ -102,6 +111,8 @@ export function PopScreen(): React.JSX.Element {
                 popsDisabled={game.contractComplete}
                 bubbleBorderUnpopped={bubbleOutline?.unpopped}
                 bubbleBorderPopped={bubbleOutline?.popped}
+                bubbleFillUnpopped={tintFills?.unpopped}
+                bubbleFillPopped={tintFills?.popped}
               />
             </TrayFrame>
           </View>

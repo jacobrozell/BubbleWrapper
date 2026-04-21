@@ -4,6 +4,7 @@ import * as formulas from '../src/economy/formulas';
 import {
   advanceCompany,
   advanceCompanyWithSelection,
+  claimMvpAchievement,
   commitPop,
   confirmPrestige,
   getGameSnapshot,
@@ -68,23 +69,28 @@ describe('zenStore Phase B', () => {
     expect(after.companyIndex).toBe(before.companyIndex);
   });
 
-  test('advanceCompany grants Flair for first-contract achievement', () => {
+  test('achievements grant Flair only when claimed after thresholds are met', () => {
     jest.spyOn(formulas, 'quotaForCompany').mockReturnValue(1);
     commitPop(1_000);
+    expect(claimMvpAchievement('first_pop')).toBe('ok');
     advanceCompany();
+    expect(claimMvpAchievement('first_contract')).toBe('ok');
     const g = getGameSnapshot();
-    expect(g.flair).toBe(30);
+    expect(g.flair).toBe(34);
     expect(g.lifetimeContractsCompleted).toBe(1);
     expect(g.claimedAchievementIds).toContain('first_contract');
+    expect(g.claimedAchievementIds).toContain('first_pop');
   });
 
   test('cosmetic purchase spends Flair and survives prestige', () => {
     jest.spyOn(formulas, 'quotaForCompany').mockReturnValue(1);
     commitPop(1_000);
+    expect(claimMvpAchievement('first_pop')).toBe('ok');
     advanceCompany();
+    expect(claimMvpAchievement('first_contract')).toBe('ok');
     expect(purchaseCosmetic(COSMETIC_IDS.bubbleOutlineBlue)).toBe('ok');
     const mid = getGameSnapshot();
-    expect(mid.flair).toBe(5);
+    expect(mid.flair).toBe(9);
     expect(mid.hasBlueBubbleOutline).toBe(true);
 
     jest.spyOn(formulas, 'earnCreditsPerPop').mockReturnValue(10_000);
@@ -95,7 +101,7 @@ describe('zenStore Phase B', () => {
     expect(g.prestigeCount).toBe(1);
     expect(g.credits).toBe(0);
     expect(g.ownedUpgrades[UPGRADE_IDS.creditsPerPop] ?? 0).toBe(0);
-    expect(g.flair).toBe(5);
+    expect(g.flair).toBe(9);
     expect(g.hasBlueBubbleOutline).toBe(true);
     expect(g.lifetimeContractsCompleted).toBe(1);
   });

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -7,18 +7,31 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+import type { AchievementMvpDef } from '../content/achievementsMvp';
 import { ACHIEVEMENT_MVP } from '../content/achievementsMvp';
-import { selectionTick } from '../engine/haptics';
 import {
+  achievementMet,
+  achievementProgressParts,
+} from '../economy/achievementsMvpLogic';
+import { popComplete, selectionTick } from '../engine/haptics';
+import {
+  claimMvpAchievement,
   confirmPrestige,
   getGameSnapshot,
   getTheme,
+  recordProgressTabOpened,
   setHasSeenPrestigeExplainer,
   setHapticsEnabled,
   setSoundEnabled,
@@ -27,12 +40,193 @@ import {
 import { useZenStore } from '../storage/useZenStore';
 import { makeTheme } from '../theme/tokens';
 
+function AchievementMvpRow({
+  def,
+  theme,
+  claimed,
+  claimable,
+  metaLine,
+  claimAnimLockRef,
+}: {
+  def: AchievementMvpDef;
+  theme: ReturnType<typeof makeTheme>;
+  claimed: boolean;
+  claimable: boolean;
+  metaLine: string;
+  claimAnimLockRef: React.MutableRefObject<boolean>;
+}): React.JSX.Element {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const finishClaim = useCallback(() => {
+    const r = claimMvpAchievement(def.id);
+    if (r === 'ok') {
+      popComplete();
+    }
+    scale.value = withSpring(1, { damping: 16, stiffness: 280 });
+    claimAnimLockRef.current = false;
+  }, [claimAnimLockRef, def.id, scale]);
+
+  const onPress = () => {
+    if (claimed) {
+      selectionTick();
+      return;
+    }
+    if (!claimable) {
+      selectionTick();
+      return;
+    }
+    if (claimAnimLockRef.current) {
+      selectionTick();
+      return;
+    }
+    claimAnimLockRef.current = true;
+    selectionTick();
+    scale.value = withSpring(
+      1.1,
+      { damping: 13, stiffness: 320 },
+      (finished) => {
+        if (finished) {
+          runOnJS(finishClaim)();
+        } else {
+          runOnJS(() => {
+            claimAnimLockRef.current = false;
+          })();
+        }
+      },
+    );
+  };
+
+  const metaColor = claimed || claimable ? theme.flairAccent : theme.mutedText;
+  const borderColor = claimable
+    ? theme.flairAccent
+    : claimed
+      ? theme.mode === 'dark'
+        ? 'rgba(196,181,253,0.45)'
+        : 'rgba(107,76,200,0.38)'
+      : theme.bubbleBorder;
+  const fill =
+    claimed
+      ? theme.mode === 'dark'
+        ? 'rgba(196,181,253,0.12)'
+        : 'rgba(107,76,200,0.10)'
+      : claimable
+        ? theme.mode === 'dark'
+          ? 'rgba(196,181,253,0.07)'
+          : 'rgba(107,76,200,0.06)'
+        : 'transparent';
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityHint={
+        claimable
+          ? 'Plays a short animation then adds Flair to your balance'
+          : undefined
+      }
+      accessibilityLabel={
+        claimed
+          ? `${def.title}, completed`
+          : claimable
+            ? `${def.title}, ${def.rewardFlair} Flair ready to collect`
+            : `${def.title}, in progress`
+      }
+    >
+      <Animated.View
+        style={[
+          animStyle,
+          styles.achShell,
+          {
+            borderColor,
+            borderWidth: claimable ? 2 : 1,
+            backgroundColor: fill,
+          },
+        ]}
+      >
+        <View style={styles.achTitleRow}>
+          <Text style={[styles.achTitle, { color: theme.text, flex: 1 }]}>
+            {def.title}
+          </Text>
+          {claimed ? (
+            <Text
+              accessible={false}
+              style={[styles.achCheck, { color: theme.flairAccent }]}
+            >
+              ✓
+            </Text>
+          ) : null}
+        </View>
+        <Text style={[styles.achSub, { color: theme.mutedText }]}>
+          {def.description}
+        </Text>
+        <Text style={[styles.achMeta, { color: metaColor }]}>{metaLine}</Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+function PrefRow({
+  label,
+  value,
+  onPress,
+  theme,
+}: {
+  label: string;
+  value: string;
+  onPress: () => void;
+  theme: ReturnType<typeof makeTheme>;
+}): React.JSX.Element {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={styles.prefRow}
+    >
+      <Text style={{ color: theme.text, fontWeight: '700' }}>{label}</Text>
+      <Text style={{ color: theme.currencyAccent, fontWeight: '700' }}>
+        {value}
+      </Text>
+    </Pressable>
+  );
+}
+
 export function ProgressScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const [prestigeOpen, setPrestigeOpen] = useState(false);
+  const claimAnimLockRef = useRef(false);
 
   const { game, themeMode } = useZenStore();
   const theme = makeTheme(themeMode);
+
+  useLayoutEffect(() => {
+    recordProgressTabOpened();
+  }, []);
+
+  const achInput = {
+    lifetimeContractsCompleted: game.lifetimeContractsCompleted,
+    lifetimePops: game.lifetimePops,
+    visitedProgress: game.visitedProgressTab,
+    visitedShop: game.visitedShopTab,
+  };
+
+  const formatAchMeta = (a: AchievementMvpDef): string => {
+    const claimed = game.claimedAchievementIds.includes(a.id);
+    if (claimed) {
+      return `Complete · +${a.rewardFlair} Flair`;
+    }
+    if (achievementMet(a, achInput)) {
+      return `Ready — tap to collect +${a.rewardFlair} Flair`;
+    }
+    const p = achievementProgressParts(a, achInput);
+    if (!p) return '';
+    if (p.unit === 'visit') {
+      return `${p.current} / ${p.target} tab visit`;
+    }
+    return `${p.current} / ${p.target} ${p.unit}`;
+  };
 
   const openPrestige = useCallback(() => {
     const snap = getGameSnapshot();
@@ -97,29 +291,17 @@ export function ProgressScreen(): React.JSX.Element {
         <View style={[styles.card, { backgroundColor: theme.panel, gap: 14 }]}>
           {ACHIEVEMENT_MVP.map((a) => {
             const done = game.claimedAchievementIds.includes(a.id);
-            const progress = Math.min(
-              game.lifetimeContractsCompleted,
-              a.thresholdLifetimeContracts,
-            );
+            const claimable = !done && achievementMet(a, achInput);
             return (
-              <View key={a.id} style={styles.achBlock}>
-                <Text style={[styles.achTitle, { color: theme.text }]}>
-                  {a.title}
-                </Text>
-                <Text style={[styles.achSub, { color: theme.mutedText }]}>
-                  {a.description}
-                </Text>
-                <Text
-                  style={[
-                    styles.achMeta,
-                    { color: done ? theme.flairAccent : theme.mutedText },
-                  ]}
-                >
-                  {done
-                    ? `Complete · +${a.rewardFlair} Flair`
-                    : `${progress} / ${a.thresholdLifetimeContracts} contracts`}
-                </Text>
-              </View>
+              <AchievementMvpRow
+                key={a.id}
+                def={a}
+                theme={theme}
+                claimed={done}
+                claimable={claimable}
+                metaLine={formatAchMeta(a)}
+                claimAnimLockRef={claimAnimLockRef}
+              />
             );
           })}
         </View>
@@ -229,31 +411,6 @@ export function ProgressScreen(): React.JSX.Element {
   );
 }
 
-function PrefRow({
-  label,
-  value,
-  onPress,
-  theme,
-}: {
-  label: string;
-  value: string;
-  onPress: () => void;
-  theme: ReturnType<typeof makeTheme>;
-}): React.JSX.Element {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      style={styles.prefRow}
-    >
-      <Text style={{ color: theme.text, fontWeight: '700' }}>{label}</Text>
-      <Text style={{ color: theme.currencyAccent, fontWeight: '700' }}>
-        {value}
-      </Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1, paddingHorizontal: 16, paddingTop: 8 },
@@ -321,8 +478,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalBtnPrimaryText: { color: '#fff', fontWeight: '800' },
-  achBlock: { gap: 4 },
+  achShell: { borderRadius: 12, padding: 12, gap: 4 },
+  achTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   achTitle: { fontSize: 15, fontWeight: '800' },
+  achCheck: { fontSize: 16, fontWeight: '800' },
   achSub: { fontSize: 13, lineHeight: 18 },
   achMeta: { fontSize: 12, fontWeight: '700', marginTop: 2 },
 });

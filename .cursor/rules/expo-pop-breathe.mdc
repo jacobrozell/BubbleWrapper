@@ -24,3 +24,9 @@ alwaysApply: true
 # Edits
 
 - Match existing TypeScript style, minimal diffs, no unrelated refactors.
+
+# Agent skills (optional reads)
+
+- **Substantive** UI or flows (new screens, navigation, a11y- or security-sensitive UI, holistic review): read `.cursor/skills/expo-rn-agent-system/SKILL.md` when it clearly helps; skip for trivial one-liners unless the user wants a full pass.
+- **List FPS, FlashList, Reanimated, gesture/render churn**: read `.cursor/skills/react-native-skills/SKILL.md` first.
+- **`tests-with-code`** still governs when to add or update Jest tests alongside production edits.

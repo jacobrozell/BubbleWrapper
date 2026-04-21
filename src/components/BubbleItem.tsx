@@ -30,6 +30,9 @@ type Props = {
   /** When set, overrides `theme.bubbleBorder` / highlight for rim read. */
   bubbleBorderUnpopped?: string;
   bubbleBorderPopped?: string;
+  /** When set, overrides `theme.bubble` for fill. */
+  bubbleFillUnpopped?: string;
+  bubbleFillPopped?: string;
 };
 
 function BubbleItemImpl({
@@ -42,6 +45,8 @@ function BubbleItemImpl({
   hitSlopInset = 0,
   bubbleBorderUnpopped,
   bubbleBorderPopped,
+  bubbleFillUnpopped,
+  bubbleFillPopped,
 }: Props) {
   const [popped, setPopped] = useState(false);
   const beganRef = useRef(false);
@@ -94,11 +99,14 @@ function BubbleItemImpl({
   const borderUnpopped = bubbleBorderUnpopped ?? theme.bubbleBorder;
   const borderPopped = bubbleBorderPopped ?? theme.highlight;
 
+  const fillUnpopped = bubbleFillUnpopped ?? theme.bubble;
+  const fillPopped = bubbleFillPopped ?? theme.bubble;
+
   const surface: StyleProp<ViewStyle> = {
     width: size,
     height: size,
     borderRadius: size * 0.36,
-    backgroundColor: theme.bubble,
+    backgroundColor: popped ? fillPopped : fillUnpopped,
     borderWidth: popped ? 2 : 1,
     borderColor: popped ? borderPopped : borderUnpopped,
     shadowColor: theme.shadow,

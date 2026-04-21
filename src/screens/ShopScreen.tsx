@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -9,13 +9,19 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
-import { COSMETICS, type CosmeticDef } from '../content/cosmetics';
+import {
+  BUBBLE_TINT_PRESET_HEXES,
+  COSMETICS,
+  type CosmeticDef,
+} from '../content/cosmetics';
 import { UPGRADES, type UpgradeDef } from '../content/upgrades';
 import { nextTierPrice } from '../economy/formulas';
 import { selectionTick } from '../engine/haptics';
 import {
   purchaseCosmetic,
   purchaseUpgrade,
+  recordShopTabOpened,
+  setBubbleTintHex,
   type CosmeticPurchaseResult,
   type GameSnapshot,
   type PurchaseResult,
@@ -57,6 +63,10 @@ export function ShopScreen(): React.JSX.Element {
     },
     [showToast],
   );
+
+  useLayoutEffect(() => {
+    recordShopTabOpened();
+  }, []);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.canvas }]}>
@@ -107,7 +117,7 @@ export function ShopScreen(): React.JSX.Element {
         </Text>
         <View style={styles.list}>
           {COSMETICS.map((def) => (
-            <CosmeticRow
+            <CosmeticBlock
               key={def.id}
               def={def}
               game={game}
@@ -205,7 +215,7 @@ function ShopRow({
   );
 }
 
-function CosmeticRow({
+function CosmeticBlock({
   def,
   game,
   theme,
@@ -225,51 +235,118 @@ function CosmeticRow({
       ? theme.flairAccent
       : theme.shopUnaffordable;
   const a11y = `${def.title}, ${owned ? 'owned' : `${def.priceFlair} flair`}`;
+  const showTintPicker = def.cosmeticKind === 'tint' && owned;
+  const selectedHex = game.bubbleTintHex.trim().toLowerCase();
 
   return (
     <View
       style={[
-        styles.row,
-        { height: ROW_H, backgroundColor: theme.panel, borderColor: theme.bubbleBorder },
+        styles.cosmeticCard,
+        {
+          backgroundColor: theme.panel,
+          borderColor: theme.bubbleBorder,
+          paddingBottom: showTintPicker ? 12 : 0,
+        },
       ]}
       accessibilityLabel={a11y}
     >
-      <View style={{ flex: 1, paddingRight: 10 }}>
-        <Text
-          style={[styles.rowTitle, { color: titleColor }]}
-          numberOfLines={1}
-        >
-          {def.title}
-          {owned ? ' · Owned' : ''}
-        </Text>
+      <View
+        style={[
+          styles.row,
+          {
+            minHeight: ROW_H,
+            height: showTintPicker ? undefined : ROW_H,
+            borderWidth: 0,
+            paddingHorizontal: 0,
+          },
+        ]}
+      >
+        <View style={{ flex: 1, paddingRight: 10 }}>
+          <Text
+            style={[styles.rowTitle, { color: titleColor }]}
+            numberOfLines={1}
+          >
+            {def.title}
+            {owned ? ' · Owned' : ''}
+          </Text>
+          {!owned ? (
+            <Text style={[styles.rowSub, { color: theme.mutedText }]}>
+              {def.description}
+            </Text>
+          ) : def.cosmeticKind === 'tint' ? (
+            <Text style={[styles.rowSub, { color: theme.mutedText }]}>
+              Tap a swatch for unpopped bubble fill, or use default tray color.
+            </Text>
+          ) : null}
+        </View>
         {!owned ? (
-          <Text style={[styles.rowSub, { color: theme.mutedText }]}>
-            {def.description}
-          </Text>
-        ) : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Buy ${def.title} for ${def.priceFlair} flair`}
+            onPress={() => onBuy(def.id)}
+            disabled={!canAfford}
+            style={[
+              styles.buy,
+              {
+                borderColor: canAfford ? theme.flairAccent : theme.bubbleBorder,
+                opacity: canAfford ? 1 : 0.55,
+              },
+            ]}
+          >
+            <Text style={{ color: priceColor, fontWeight: '800' }}>
+              {def.priceFlair.toLocaleString()}
+            </Text>
+            <Text style={{ color: priceColor, fontWeight: '800' }}>Buy</Text>
+          </Pressable>
+        ) : (
+          <Text style={{ color: theme.shopOwned, fontWeight: '800' }}>Owned</Text>
+        )}
       </View>
-      {!owned ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Buy ${def.title} for ${def.priceFlair} flair`}
-          onPress={() => onBuy(def.id)}
-          disabled={!canAfford}
-          style={[
-            styles.buy,
-            {
-              borderColor: canAfford ? theme.flairAccent : theme.bubbleBorder,
-              opacity: canAfford ? 1 : 0.55,
-            },
-          ]}
-        >
-          <Text style={{ color: priceColor, fontWeight: '800' }}>
-            {def.priceFlair.toLocaleString()}
-          </Text>
-          <Text style={{ color: priceColor, fontWeight: '800' }}>Buy</Text>
-        </Pressable>
-      ) : (
-        <Text style={{ color: theme.shopOwned, fontWeight: '800' }}>Owned</Text>
-      )}
+      {showTintPicker ? (
+        <View style={styles.tintSwatches}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Default bubble color from theme"
+            onPress={() => {
+              selectionTick();
+              setBubbleTintHex('');
+            }}
+            style={[
+              styles.tintDefault,
+              {
+                borderColor:
+                  selectedHex === '' ? theme.flairAccent : theme.bubbleBorder,
+                backgroundColor: theme.bubble,
+              },
+            ]}
+          >
+            <Text style={[styles.tintDefaultText, { color: theme.mutedText }]}>
+              Default
+            </Text>
+          </Pressable>
+          {BUBBLE_TINT_PRESET_HEXES.map((hex) => {
+            const on = selectedHex === hex.toLowerCase();
+            return (
+              <Pressable
+                key={hex}
+                accessibilityRole="button"
+                accessibilityLabel={`Bubble tint ${hex}`}
+                onPress={() => {
+                  selectionTick();
+                  setBubbleTintHex(hex);
+                }}
+                style={[
+                  styles.tintSwatch,
+                  {
+                    backgroundColor: hex,
+                    borderColor: on ? theme.flairAccent : 'rgba(127,127,127,0.35)',
+                  },
+                ]}
+              />
+            );
+          })}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -298,6 +375,33 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   list: { gap: 10 },
+  cosmeticCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingTop: 4,
+  },
+  tintSwatches: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingTop: 4,
+    paddingLeft: 2,
+  },
+  tintSwatch: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+  },
+  tintDefault: {
+    paddingHorizontal: 10,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    justifyContent: 'center',
+  },
+  tintDefaultText: { fontSize: 11, fontWeight: '700' },
   row: {
     borderRadius: 14,
     borderWidth: 1,
