@@ -6,6 +6,7 @@ Expo / React Native app (see `package.json` for scripts).
 
 - `npm install`
 - `npm start` — Metro; press `a` / `i` for Android or iOS
+- `npm run web` — **dev-only** browser preview (not a shipped target); see `docs/cross-platform.md`
 - `npm test` — Jest
 
 For a native **development build** (e.g. after native dependency or `app.json` changes), use `npx expo run:android` or `npx expo run:ios`. Generated `android/` and `ios/` folders are gitignored.
